@@ -1,0 +1,57 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Release",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "D:/Program Files/Steam/steamapps/common/X-Plane 11/Resources/plugins",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64" ],
+      "variables": [
+        {
+          "name": "GLEW_INCLUDE_DIRECTORY",
+          "value": "C:/glew/include",
+          "type": "PATH"
+        },
+        {
+          "name": "GLEW_LIBRARY_FILE",
+          "value": "C:/glew/lib/Release/x64/glew32s.lib",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "LIBPNG_INCLUDE_DIRECTORY",
+          "value": "C:/libpng/include",
+          "type": "PATH"
+        },
+        {
+          "name": "LIBPNG_LIBRARY_FILE",
+          "value": "C:/libpng/lib/libpng16_static.lib",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "XPLM_SDK_INCLUDE_DIRECTORY",
+          "value": "C:/XPLM_SDK/CHeaders/XPLM",
+          "type": "PATH"
+        },
+        {
+          "name": "XPLM_SDK_LIBRARY_FILE",
+          "value": "C:/XPLM_SDK/Libraries/Win/XPLM_64.lib",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "ZLIB_INCLUDE_DIRECTORY",
+          "value": "C:/zlib/include",
+          "type": "PATH"
+        },
+        {
+          "name": "ZLIB_LIBRARY_FILE",
+          "value": "C:/zlib/lib/zlibstatic.lib",
+          "type": "FILEPATH"
+        }
+      ]
+    }
+  ]
+}
