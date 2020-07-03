@@ -313,9 +313,9 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 
 PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plugin_description)
 {
-	strcpy_s(plugin_name, INFORMATION_BUFFER_SIZE, "Volumetric Clouds");
-	strcpy_s(plugin_signature, INFORMATION_BUFFER_SIZE, "FarukEroglu2048.volumetric_clouds");
-	strcpy_s(plugin_description, INFORMATION_BUFFER_SIZE, "Volumetric Clouds for X-Plane 11");
+	strcpy(plugin_name, "Volumetric Clouds");
+	strcpy(plugin_signature, "FarukEroglu2048.volumetric_clouds");
+	strcpy(plugin_description, "Volumetric Clouds for X-Plane 11");
 
 	viewport_dataref = XPLMFindDataRef("sim/graphics/view/viewport");
 
