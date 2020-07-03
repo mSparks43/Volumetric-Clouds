@@ -1,6 +1,7 @@
 #version 410 core
 
-#define EARTH_RADIUS 6378100
+#define EARTH_RADIUS 6378100.0
+#define EARTH_CENTER vec3(0.0, -1.0 * EARTH_RADIUS, 0.0)
 
 #define SAMPLE_STEP_COUNT 64
 #define SUN_STEP_COUNT 4
@@ -83,52 +84,49 @@ float henyey_greenstein(in float dot_angle, in float scattering_value)
 	return (1.0 - squared_scattering_value) / (4.0 * PI * pow(squared_scattering_value - (2.0 * scattering_value * dot_angle) + 1.0, 1.5));
 }
 
+float get_height_ratio(in vec3 ray_position, in int layer_index)
+{
+	return map(length(ray_position - EARTH_CENTER) - EARTH_RADIUS, cloud_bases[layer_index], cloud_bases[layer_index] + cloud_heights[cloud_types[layer_index] - 1], 0.0, 1.0);
+}
+
 float sample_clouds(in vec3 ray_position, in int layer_index)
 {
 	vec4 base_noise_sample = texture(base_noise_texture, ray_position * base_noise_scale);
 	float base_noise = map(base_noise_sample.x, dot(base_noise_sample.yzw, base_noise_ratios[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
 
-	float height_ratio = map(ray_position.y, cloud_bases[layer_index], cloud_bases[layer_index] + cloud_heights[cloud_types[layer_index] - 1], 0.0, 1.0);
-	float height_multiplier = 1.0;
+	float height_ratio = get_height_ratio(ray_position, layer_index);
+	float height_multiplier = map(height_ratio, 0.0, 0.025, 0.0, 1.0) * map(height_ratio, 0.25, 1.0, 1.0, 0.0);
 
 	float base_erosion = map(base_noise * height_multiplier, 1.0 - max(texture(cloud_map_texture, ray_position.xz * cloud_map_scale).x, cloud_coverages[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
 
-	if (base_erosion >= 0.01)
+	if (base_erosion > 0.01)
 	{
 		vec3 detail_noise_sample = texture(detail_noise_texture, ray_position * detail_noise_scale).xyz;
 		float detail_noise = dot(detail_noise_sample, detail_noise_ratios[cloud_types[layer_index] - 1]);
 
 		return map(base_erosion, detail_noise, 1.0, 0.0, 1.0);
 	}
-	else return 0.0;
+	else return base_erosion;
 }
 
-float ray_layer_intersection(in vec3 ray_position, in vec3 ray_direction, in float layer_height)
+float ray_sphere_intersection(in vec3 ray_start_position, in vec3 ray_direction, in float sphere_height)
 {
-	vec3 earth_center = vec3(0.0, -1.0 * EARTH_RADIUS, 0.0);
-
-	vec3 ray_earth_vector = ray_position - earth_center;
-	float ray_earth_distance = length(ray_earth_vector);
+	vec3 ray_earth_vector = ray_start_position - EARTH_CENTER;
 
 	float coefficient_1 = 2.0 * dot(ray_direction, ray_earth_vector);
-	float coefficient_2 = pow(ray_earth_distance, 2.0) - pow(EARTH_RADIUS + layer_height, 2.0);
+	float coefficient_2 = dot(ray_earth_vector, ray_earth_vector) - pow(EARTH_RADIUS + sphere_height, 2.0);
 
 	float discriminant = pow(coefficient_1, 2.0) - (4.0 * coefficient_2);
 
-	if (discriminant >= 0.0)
+	if (discriminant < 0.0) return 0.0;
+	else
 	{
-		float solution_1 = ((-1.0 * coefficient_1) - sqrt(discriminant)) / 2.0;
-		float solution_2 = ((-1.0 * coefficient_1) + sqrt(discriminant)) / 2.0;
+		float lower_solution = ((-1.0 * coefficient_1) - sqrt(discriminant)) / 2.0;
+		float higher_solution = ((-1.0 * coefficient_1) + sqrt(discriminant)) / 2.0;
 
-		float ray_layer_distance;
-
-		if (solution_1 >= 0.0) ray_layer_distance = solution_1;
-		else ray_layer_distance = max(0.0, solution_2);
-
-		if (ray_layer_distance <= ray_earth_distance) return ray_layer_distance;
-		else return 0.0;
+		if (lower_solution < 0.0) return max(0.0, higher_solution);
+		else return lower_solution;
 	}
-	else return 0.0;
 }
 
 vec4 ray_march(in int layer_index, in vec4 input_color)
@@ -139,8 +137,11 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 	{
 		vec3 sample_ray_direction = normalize(ray_end_position - ray_start_position);
 
-		float inner_layer_distance = ray_layer_intersection(ray_start_position, sample_ray_direction, cloud_bases[layer_index]);
-		float outer_layer_distance = ray_layer_intersection(ray_start_position, sample_ray_direction, cloud_bases[layer_index] + cloud_heights[cloud_types[layer_index] - 1]);
+		float inner_sphere_distance = ray_sphere_intersection(ray_start_position, sample_ray_direction, cloud_bases[layer_index]);
+		float outer_sphere_distance = ray_sphere_intersection(ray_start_position, sample_ray_direction, cloud_bases[layer_index] + cloud_heights[cloud_types[layer_index] - 1]);
+
+		float near_sphere_distance = min(inner_sphere_distance, outer_sphere_distance);
+		float far_sphere_distance = max(inner_sphere_distance, outer_sphere_distance);
 
 		vec4 world_vector = inverse_projection_matrix * vec4((depth_texture_position * 2.0) - 1.0, map(texture(depth_texture, depth_texture_position).x, 0.0, 1.0, -1.0, 1.0), 1.0);
 		world_vector /= world_vector.w;
@@ -148,8 +149,24 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 		vec3 world_position = vec3(inverse_modelview_matrix * world_vector);
 		float world_distance = length(world_position - ray_start_position);
 
-		float ray_start_distance = min(inner_layer_distance, outer_layer_distance);
-		float ray_march_distance = min(world_distance - ray_start_distance, max(inner_layer_distance, outer_layer_distance) - ray_start_distance);
+		float ray_start_distance = 0.0;
+		float ray_march_distance = 0.0;
+
+		float height_ratio = get_height_ratio(ray_start_position, layer_index);
+
+		if ((height_ratio > 0.0) && (height_ratio < 1.0))
+		{
+			if (near_sphere_distance == 0.0) ray_march_distance = far_sphere_distance;
+			else ray_march_distance = near_sphere_distance;
+		}
+		else
+		{
+			ray_start_distance = near_sphere_distance;
+			ray_march_distance = far_sphere_distance - near_sphere_distance;
+		}
+
+		ray_start_distance = min(ray_start_distance, world_distance);
+		ray_march_distance = min(ray_march_distance, world_distance - ray_start_distance);
 
 		if (ray_march_distance != 0.0)
 		{
@@ -159,7 +176,8 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 			float sample_step_size = min(ray_march_distance / SAMPLE_STEP_COUNT, MAXIMUM_SAMPLE_STEP_SIZE);
 			float sun_step_size = cloud_heights[cloud_types[layer_index] - 1] / SUN_STEP_COUNT;
 
-			float sun_dot_angle = dot(sample_ray_direction, sun_direction);
+			float sun_dot_angle = dot(sample_ray_direction, -1.0 * sun_direction);
+			float mie_scattering_gain = clamp(mix(henyey_greenstein(sun_dot_angle, forward_mie_scattering), henyey_greenstein(sun_dot_angle, -1.0 * backward_mie_scattering), 0.5), 0.75, 2.5);
 
 			while (sample_ray_distance <= ray_march_distance)
 			{
@@ -178,11 +196,11 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 						sun_ray_position += sun_direction * sun_step_size;
 					}
 
-					float sample_attenuation = clamp(exp(-1.0 * blocking_density), 0.75, 1.0) * clamp(1.0 - exp(-2.0 * in_scattering * blocking_density), 0.75, 1.0) * clamp(mix(henyey_greenstein(sun_dot_angle, forward_mie_scattering), henyey_greenstein(sun_dot_angle, -1.0 * backward_mie_scattering), 0.5), 0.75, 2.5);
-					vec3 sample_color = clamp(mix(sun_tint, atmosphere_tint, atmospheric_blending) * sun_gain * sample_attenuation, 0.0, 1.0);
+					float sample_attenuation = clamp(exp(-1.0 * blocking_density) * (1.0 - exp(-2.0 * in_scattering * blocking_density)), 0.25, 1.0);
+					vec3 sample_color = clamp(mix(sun_tint, atmosphere_tint, atmospheric_blending) * sun_gain * mie_scattering_gain * sample_attenuation, 0.0, 1.0);
 
 					float alpha_multiplier = 1.0 - smoothstep(0.0, 1.0, map(length(sample_ray_position - camera_position), fade_start_distance, fade_end_distance, 0.0, 1.0));
-					if (alpha_multiplier < MINIMUM_TRANSMITTANCE) break;
+					if (alpha_multiplier < 0.01) break;
 
 					float sample_alpha = cloud_sample_1 * alpha_multiplier;
 
