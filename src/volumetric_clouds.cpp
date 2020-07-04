@@ -5,7 +5,6 @@
 #include <XPLMDataAccess.h>
 #include <XPLMDisplay.h>
 #include <XPLMGraphics.h>
-#include <XPLMCamera.h>
 
 #include <GL/glew.h>
 
@@ -60,8 +59,6 @@ XPLMDataRef sun_gain_dataref;
 XPLMDataRef atmosphere_tint_dataref;
 XPLMDataRef atmospheric_blending_dataref;
 
-XPLMDataRef in_scattering_dataref;
-
 XPLMDataRef forward_mie_scattering_dataref;
 XPLMDataRef backward_mie_scattering_dataref;
 
@@ -104,8 +101,6 @@ GLint shader_detail_noise_scale;
 
 GLint shader_blue_noise_scale;
 
-GLint shader_camera_position;
-
 GLint shader_cloud_bases;
 GLint shader_cloud_heights;
 
@@ -128,18 +123,10 @@ GLint shader_sun_gain;
 GLint shader_atmosphere_tint;
 GLint shader_atmospheric_blending;
 
-GLint shader_in_scattering;
-
 GLint shader_forward_mie_scattering;
 GLint shader_backward_mie_scattering;
 
 GLint shader_local_time;
-
-#include <string>
-#include <XPLMUtilities.h>
-
-float fade_start_distance;
-float fade_end_distance;
 
 #ifdef IBM
 BOOL APIENTRY DllMain(IN HINSTANCE dll_handle, IN DWORD call_reason, IN LPVOID reserved)
@@ -148,163 +135,137 @@ BOOL APIENTRY DllMain(IN HINSTANCE dll_handle, IN DWORD call_reason, IN LPVOID r
 }
 #endif
 
-float test_callback(float inElapsedSinceLastCall, float inElapsedTimeSinceLastFlightLoop, int inCounter, void* inRefcon)
-{
-	fade_start_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/near_fog_cld");
-	fade_end_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/far_fog_cld");
-
-	fade_start_distance = XPLMGetDataf(fade_start_distance_dataref);
-	fade_end_distance = XPLMGetDataf(fade_end_distance_dataref);
-
-	std::string test;
-
-	test += "START DISTANCE : ";
-	test += std::to_string(fade_start_distance);
-	test += " || END DISTANCE : ";
-	test += std::to_string(fade_end_distance);
-	test += " || START DATAREF : ";
-	test += std::to_string((uint64_t)fade_start_distance_dataref);
-	test += "|| END DATAREF :";
-	test += std::to_string((uint64_t)fade_end_distance_dataref);
-	test += "\n";
-
-	XPLMDebugString(test.c_str());
-
-	return 0.25;
-}
-
 int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_reference)
 {
-	XPLMSetGraphicsState(0, 5, 0, 0, 1, 0, 0);
-	glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);
-
-	XPLMBindTexture2d(depth_texture, 0);
-
-	int viewport_coordinates[4];
-	XPLMGetDatavi(viewport_dataref, viewport_coordinates, 0, 4);
-
-	GLsizei new_viewport_x = viewport_coordinates[0];
-	GLsizei new_viewport_y = viewport_coordinates[1];
-
-	GLsizei new_viewport_width = viewport_coordinates[2] - viewport_coordinates[0];
-	GLsizei new_viewport_height = viewport_coordinates[3] - viewport_coordinates[1];
-
-	if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height, 0);
-	else glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height);
-
-	current_viewport_width = new_viewport_width;
-	current_viewport_height = new_viewport_height;
-
-	XPLMBindTexture2d(cloud_map_texture, 1);
-
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_3D, base_noise_texture);
-
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_3D, detail_noise_texture);
-
-	XPLMBindTexture2d(blue_noise_texture, 4);
-
-	glBindVertexArray(vertex_array_object);
-
-	glUseProgram(shader_program);
-
-	float modelview_matrix[16];
-	float projection_matrix[16];
-
-	XPLMGetDatavf(modelview_matrix_dataref, modelview_matrix, 0, 16);
-	XPLMGetDatavf(projection_matrix_dataref, projection_matrix, 0, 16);
-
-	glUniformMatrix4fv(shader_modelview_matrix, 1, GL_FALSE, modelview_matrix);
-	glUniformMatrix4fv(shader_projection_matrix, 1, GL_FALSE, projection_matrix);
-
-	glUniform1f(shader_cloud_map_scale, XPLMGetDataf(cloud_map_scale_dataref));
-
-	glUniform1f(shader_base_noise_scale, XPLMGetDataf(base_noise_scale_dataref));
-	glUniform1f(shader_detail_noise_scale, XPLMGetDataf(detail_noise_scale_dataref));
-
-	glUniform1f(shader_blue_noise_scale, XPLMGetDataf(blue_noise_scale_dataref));
-
-	XPLMCameraPosition_t camera_position;
-	XPLMReadCameraPosition(&camera_position);
-
-	glUniform3f(shader_camera_position, camera_position.x, camera_position.y, camera_position.z);
-
-	float cloud_bases[CLOUD_LAYER_COUNT];
-	float cloud_heights[CLOUD_TYPE_COUNT];
-
-	for (size_t layer_index = 0; layer_index < CLOUD_LAYER_COUNT; layer_index++) cloud_bases[layer_index] = XPLMGetDataf(cloud_base_datarefs[layer_index]);
-	for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++) cloud_heights[type_index] = XPLMGetDataf(cloud_height_datarefs[type_index]);
-
-	glUniform1fv(shader_cloud_bases, CLOUD_LAYER_COUNT, cloud_bases);
-	glUniform1fv(shader_cloud_heights, CLOUD_TYPE_COUNT, cloud_heights);
-
-	int cloud_types[CLOUD_LAYER_COUNT];
-	float cloud_coverages[CLOUD_TYPE_COUNT];
-
-	for (size_t layer_index = 0; layer_index < CLOUD_LAYER_COUNT; layer_index++) cloud_types[layer_index] = XPLMGetDatai(cloud_type_datarefs[layer_index]);
-	for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++) cloud_coverages[type_index] = XPLMGetDataf(cloud_coverage_datarefs[type_index]);
-
-	glUniform1iv(shader_cloud_types, CLOUD_LAYER_COUNT, cloud_types);
-	glUniform1fv(shader_cloud_coverages, CLOUD_TYPE_COUNT, cloud_coverages);
-
-	float base_noise_ratios[CLOUD_TYPE_COUNT][3];
-	float detail_noise_ratios[CLOUD_TYPE_COUNT][3];
-
-	for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++)
+	if (is_before == 0)
 	{
-		XPLMGetDatavf(base_noise_ratio_datarefs[type_index], base_noise_ratios[type_index], 0, 3);
-		XPLMGetDatavf(detail_noise_ratio_datarefs[type_index], detail_noise_ratios[type_index], 0, 3);
+		XPLMSetGraphicsState(0, 5, 0, 0, 1, 0, 0);
+		glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);
+
+		XPLMBindTexture2d(depth_texture, 0);
+
+		int viewport_coordinates[4];
+		XPLMGetDatavi(viewport_dataref, viewport_coordinates, 0, 4);
+
+		GLsizei new_viewport_x = viewport_coordinates[0];
+		GLsizei new_viewport_y = viewport_coordinates[1];
+
+		GLsizei new_viewport_width = viewport_coordinates[2] - viewport_coordinates[0];
+		GLsizei new_viewport_height = viewport_coordinates[3] - viewport_coordinates[1];
+
+		if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height, 0);
+		else glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height);
+
+		current_viewport_width = new_viewport_width;
+		current_viewport_height = new_viewport_height;
+
+		XPLMBindTexture2d(cloud_map_texture, 1);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_3D, base_noise_texture);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_3D, detail_noise_texture);
+
+		XPLMBindTexture2d(blue_noise_texture, 4);
+
+		glBindVertexArray(vertex_array_object);
+
+		glUseProgram(shader_program);
+
+		float modelview_matrix[16];
+		float projection_matrix[16];
+
+		XPLMGetDatavf(modelview_matrix_dataref, modelview_matrix, 0, 16);
+		XPLMGetDatavf(projection_matrix_dataref, projection_matrix, 0, 16);
+
+		glUniformMatrix4fv(shader_modelview_matrix, 1, GL_FALSE, modelview_matrix);
+		glUniformMatrix4fv(shader_projection_matrix, 1, GL_FALSE, projection_matrix);
+
+		glUniform1f(shader_cloud_map_scale, XPLMGetDataf(cloud_map_scale_dataref));
+
+		glUniform1f(shader_base_noise_scale, XPLMGetDataf(base_noise_scale_dataref));
+		glUniform1f(shader_detail_noise_scale, XPLMGetDataf(detail_noise_scale_dataref));
+
+		glUniform1f(shader_blue_noise_scale, XPLMGetDataf(blue_noise_scale_dataref));
+
+		float cloud_bases[CLOUD_LAYER_COUNT];
+		float cloud_heights[CLOUD_TYPE_COUNT];
+
+		for (size_t layer_index = 0; layer_index < CLOUD_LAYER_COUNT; layer_index++) cloud_bases[layer_index] = XPLMGetDataf(cloud_base_datarefs[layer_index]);
+		for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++) cloud_heights[type_index] = XPLMGetDataf(cloud_height_datarefs[type_index]);
+
+		glUniform1fv(shader_cloud_bases, CLOUD_LAYER_COUNT, cloud_bases);
+		glUniform1fv(shader_cloud_heights, CLOUD_TYPE_COUNT, cloud_heights);
+
+		int cloud_types[CLOUD_LAYER_COUNT];
+		float cloud_coverages[CLOUD_TYPE_COUNT];
+
+		for (size_t layer_index = 0; layer_index < CLOUD_LAYER_COUNT; layer_index++) cloud_types[layer_index] = XPLMGetDatai(cloud_type_datarefs[layer_index]);
+		for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++) cloud_coverages[type_index] = XPLMGetDataf(cloud_coverage_datarefs[type_index]);
+
+		glUniform1iv(shader_cloud_types, CLOUD_LAYER_COUNT, cloud_types);
+		glUniform1fv(shader_cloud_coverages, CLOUD_TYPE_COUNT, cloud_coverages);
+
+		float base_noise_ratios[CLOUD_TYPE_COUNT][3];
+		float detail_noise_ratios[CLOUD_TYPE_COUNT][3];
+
+		for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++)
+		{
+			XPLMGetDatavf(base_noise_ratio_datarefs[type_index], base_noise_ratios[type_index], 0, 3);
+			XPLMGetDatavf(detail_noise_ratio_datarefs[type_index], detail_noise_ratios[type_index], 0, 3);
+		}
+
+		glUniform3fv(shader_base_noise_ratios, CLOUD_TYPE_COUNT, reinterpret_cast<GLfloat*>(base_noise_ratios));
+		glUniform3fv(shader_detail_noise_ratios, CLOUD_TYPE_COUNT, reinterpret_cast<GLfloat*>(detail_noise_ratios));
+
+		float cloud_densities[CLOUD_TYPE_COUNT];
+		for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++) cloud_densities[type_index] = XPLMGetDataf(cloud_density_datarefs[type_index]);
+
+		glUniform1fv(shader_cloud_densities, CLOUD_TYPE_COUNT, cloud_densities);
+
+		fade_start_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/near_fog_cld");
+		fade_end_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/far_fog_cld");
+
+		glUniform1f(shader_fade_start_distance, XPLMGetDataf(fade_start_distance_dataref));
+		glUniform1f(shader_fade_end_distance, XPLMGetDataf(fade_end_distance_dataref));
+
+		float sun_pitch = XPLMGetDataf(sun_pitch_dataref) * RADIANS_PER_DEGREES;
+		float sun_heading = XPLMGetDataf(sun_heading_dataref) * RADIANS_PER_DEGREES;
+
+		glUniform3f(shader_sun_direction, cos(sun_pitch) * sin(sun_heading), sin(sun_pitch), -1.0 * cos(sun_pitch) * cos(sun_heading));
+
+		glUniform3f(shader_sun_tint, XPLMGetDataf(sun_tint_red_dataref), XPLMGetDataf(sun_tint_green_dataref), XPLMGetDataf(sun_tint_blue_dataref));
+		glUniform1f(shader_sun_gain, XPLMGetDataf(sun_gain_dataref));
+
+		float atmosphere_tint[3];
+		XPLMGetDatavf(atmosphere_tint_dataref, atmosphere_tint, 0, 3);
+
+		glUniform3fv(shader_atmosphere_tint, 1, atmosphere_tint);
+		glUniform1f(shader_atmospheric_blending, XPLMGetDataf(atmospheric_blending_dataref));
+
+		glUniform1f(shader_forward_mie_scattering, XPLMGetDataf(forward_mie_scattering_dataref));
+		glUniform1f(shader_backward_mie_scattering, XPLMGetDataf(backward_mie_scattering_dataref));
+
+		glUniform1f(shader_local_time, XPLMGetDataf(local_time_dataref));
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glUseProgram(0);
+
+		glBindVertexArray(0);
+
+		XPLMBindTexture2d(TEXTURE_INVALID, 0);
+
+		XPLMBindTexture2d(TEXTURE_INVALID, 1);
+
+		XPLMBindTexture2d(TEXTURE_INVALID, 2);
+		XPLMBindTexture2d(TEXTURE_INVALID, 3);
+
+		XPLMBindTexture2d(TEXTURE_INVALID, 4);
+
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
-
-	glUniform3fv(shader_base_noise_ratios, CLOUD_TYPE_COUNT, reinterpret_cast<GLfloat*>(base_noise_ratios));
-	glUniform3fv(shader_detail_noise_ratios, CLOUD_TYPE_COUNT, reinterpret_cast<GLfloat*>(detail_noise_ratios));
-
-	float cloud_densities[CLOUD_TYPE_COUNT];
-	for (size_t type_index = 0; type_index < CLOUD_TYPE_COUNT; type_index++) cloud_densities[type_index] = XPLMGetDataf(cloud_density_datarefs[type_index]);
-
-	glUniform1fv(shader_cloud_densities, CLOUD_TYPE_COUNT, cloud_densities);
-
-	glUniform1f(shader_fade_start_distance, fade_start_distance);
-	glUniform1f(shader_fade_end_distance, fade_end_distance);
-
-	float sun_pitch = XPLMGetDataf(sun_pitch_dataref) * RADIANS_PER_DEGREES;
-	float sun_heading = XPLMGetDataf(sun_heading_dataref) * RADIANS_PER_DEGREES;
-
-	glUniform3f(shader_sun_direction, cos(sun_pitch) * sin(sun_heading), sin(sun_pitch), -1.0 * cos(sun_pitch) * cos(sun_heading));
-
-	glUniform3f(shader_sun_tint, XPLMGetDataf(sun_tint_red_dataref), XPLMGetDataf(sun_tint_green_dataref), XPLMGetDataf(sun_tint_blue_dataref));
-	glUniform1f(shader_sun_gain, XPLMGetDataf(sun_gain_dataref));
-
-	float atmosphere_tint[3];
-	XPLMGetDatavf(atmosphere_tint_dataref, atmosphere_tint, 0, 3);
-
-	glUniform3fv(shader_atmosphere_tint, 1, atmosphere_tint);
-	glUniform1f(shader_atmospheric_blending, XPLMGetDataf(atmospheric_blending_dataref));
-
-	glUniform1f(shader_in_scattering, XPLMGetDataf(in_scattering_dataref));
-
-	glUniform1f(shader_forward_mie_scattering, XPLMGetDataf(forward_mie_scattering_dataref));
-	glUniform1f(shader_backward_mie_scattering, XPLMGetDataf(backward_mie_scattering_dataref));
-
-	glUniform1f(shader_local_time, XPLMGetDataf(local_time_dataref));
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-
-	glUseProgram(0);
-
-	glBindVertexArray(0);
-
-	XPLMBindTexture2d(TEXTURE_INVALID, 0);
-
-	XPLMBindTexture2d(TEXTURE_INVALID, 1);
-
-	XPLMBindTexture2d(TEXTURE_INVALID, 2);
-	XPLMBindTexture2d(TEXTURE_INVALID, 3);
-
-	XPLMBindTexture2d(TEXTURE_INVALID, 4);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	return 1;
 }
@@ -313,9 +274,9 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 
 PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plugin_description)
 {
-	strcpy(plugin_name, "Volumetric Clouds");
-	strcpy(plugin_signature, "FarukEroglu2048.volumetric_clouds");
-	strcpy(plugin_description, "Volumetric Clouds for X-Plane 11");
+	std::strcpy(plugin_name, "Volumetric Clouds");
+	std::strcpy(plugin_signature, "FarukEroglu2048.volumetric_clouds");
+	std::strcpy(plugin_description, "Volumetric Clouds for X-Plane 11");
 
 	viewport_dataref = XPLMFindDataRef("sim/graphics/view/viewport");
 
@@ -333,11 +294,11 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	cloud_base_datarefs[1] = XPLMFindDataRef("sim/weather/cloud_base_msl_m[1]");
 	cloud_base_datarefs[2] = XPLMFindDataRef("sim/weather/cloud_base_msl_m[2]");
 
-	cloud_height_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/height", 100.0);
-	cloud_height_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/height", 1000.0);
-	cloud_height_datarefs[2] = export_float_dataref("volumetric_clouds/broken/height", 1000.0);
-	cloud_height_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/height", 1000.0);
-	cloud_height_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/height", 2000.0);
+	cloud_height_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/height", 1000.0);
+	cloud_height_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/height", 2000.0);
+	cloud_height_datarefs[2] = export_float_dataref("volumetric_clouds/broken/height", 2000.0);
+	cloud_height_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/height", 2000.0);
+	cloud_height_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/height", 3000.0);
 
 	cloud_type_datarefs[0] = XPLMFindDataRef("sim/weather/cloud_type[0]");
 	cloud_type_datarefs[1] = XPLMFindDataRef("sim/weather/cloud_type[1]");
@@ -361,11 +322,11 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	detail_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/detail_noise_ratios", {0.625, 0.25, 0.125});
 	detail_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/detail_noise_ratios", {0.625, 0.25, 0.125});
 
-	cloud_density_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/light_absorption", 0.15);
-	cloud_density_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/light_absorption", 0.15);
-	cloud_density_datarefs[2] = export_float_dataref("volumetric_clouds/broken/light_absorption", 0.18);
-	cloud_density_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/light_absorption", 0.20);
-	cloud_density_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/light_absorption", 0.15);
+	cloud_density_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/light_absorption", 1.0);
+	cloud_density_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/light_absorption", 1.0);
+	cloud_density_datarefs[2] = export_float_dataref("volumetric_clouds/broken/light_absorption", 1.0);
+	cloud_density_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/light_absorption", 1.0);
+	cloud_density_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/light_absorption", 1.0);
 
 	fade_start_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/near_fog_cld");
 	fade_end_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/far_fog_cld");
@@ -377,12 +338,10 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	sun_tint_green_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_g");
 	sun_tint_blue_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_b");
 
-	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 1.75);
+	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 1.5);
 
 	atmosphere_tint_dataref = export_float_vector_dataref("volumetric_clouds/atmosphere_tint", {0.35, 0.575, 1.0});
 	atmospheric_blending_dataref = export_float_dataref("volumetric_clouds/atmospheric_blending", 0.15);
-
-	in_scattering_dataref = export_float_dataref("volumetric_clouds/in_scattering", 8.0);
 
 	forward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/forward_mie_scattering", 0.75);
 	backward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/backward_mie_scattering", 0.25);
@@ -404,7 +363,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	XPLMBindTexture2d(TEXTURE_INVALID, 0);
 
-	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false, 5);
+	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false, 6);
 
 	base_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/base_noise.png", true, 1);
 	detail_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/detail_noise.png", true, 0);
@@ -462,8 +421,6 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	shader_modelview_matrix = glGetUniformLocation(shader_program, "modelview_matrix");
 	shader_projection_matrix = glGetUniformLocation(shader_program, "projection_matrix");
 
-	shader_camera_position = glGetUniformLocation(shader_program, "camera_position");
-
 	shader_cloud_bases = glGetUniformLocation(shader_program, "cloud_bases");
 	shader_cloud_heights = glGetUniformLocation(shader_program, "cloud_heights");
 
@@ -486,8 +443,6 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	shader_atmosphere_tint = glGetUniformLocation(shader_program, "atmosphere_tint");
 	shader_atmospheric_blending = glGetUniformLocation(shader_program, "atmospheric_blending");
 
-	shader_in_scattering = glGetUniformLocation(shader_program, "in_scattering");
-
 	shader_forward_mie_scattering = glGetUniformLocation(shader_program, "forward_mie_scattering");
 	shader_backward_mie_scattering = glGetUniformLocation(shader_program, "backward_mie_scattering");
 
@@ -509,8 +464,6 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	#else
 	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Airplanes, 0, NULL);
 	#endif
-
-	XPLMRegisterFlightLoopCallback(test_callback, 0.25, NULL);
 
 	return 1;
 }
