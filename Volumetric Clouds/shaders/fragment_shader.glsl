@@ -30,6 +30,9 @@ uniform sampler3D detail_noise_texture;
 
 uniform sampler2D blue_noise_texture;
 
+uniform float near_clip_z;
+uniform float far_clip_z;
+
 uniform float cloud_map_scale;
 
 uniform float base_noise_scale;
@@ -100,7 +103,7 @@ float sample_clouds(in vec3 ray_position, in int layer_index)
 		vec3 detail_noise_sample = texture(detail_noise_texture, ray_position * detail_noise_scale).xyz;
 		float detail_noise = dot(detail_noise_sample, detail_noise_ratios[cloud_types[layer_index] - 1]);
 
-		return map(base_erosion, 0.25 * detail_noise, 1.0, 0.0, 1.0);
+		return map(base_erosion, 0.5 * detail_noise, 1.0, 0.0, 1.0);
 	}
 	else return base_erosion;
 }
@@ -136,7 +139,7 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 		vec2 inner_sphere_intersections = ray_sphere_intersections(ray_start_position, sample_ray_direction, cloud_bases[layer_index]);
 		vec2 outer_sphere_intersections = ray_sphere_intersections(ray_start_position, sample_ray_direction, cloud_bases[layer_index] + cloud_heights[cloud_types[layer_index] - 1]);
 
-		vec4 world_vector = inverse_projection_matrix * vec4((depth_texture_position * 2.0) - 1.0, map(texture(depth_texture, depth_texture_position).x, 0.0, 1.0, -1.0, 1.0), 1.0);
+		vec4 world_vector = inverse_projection_matrix * vec4((depth_texture_position * 2.0) - 1.0, map(texture(depth_texture, depth_texture_position).x, 0.0, 1.0, min(near_clip_z, far_clip_z), max(near_clip_z, far_clip_z)), 1.0);
 		world_vector /= world_vector.w;
 
 		vec3 world_position = vec3(inverse_modelview_matrix * world_vector);

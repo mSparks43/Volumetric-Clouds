@@ -21,6 +21,8 @@
 
 #define RADIANS_PER_DEGREES 0.01745329251994329576
 
+XPLMDataRef reverse_z_dataref;
+
 XPLMDataRef viewport_dataref;
 
 XPLMDataRef modelview_matrix_dataref;
@@ -91,6 +93,9 @@ int detail_noise_texture;
 
 int blue_noise_texture;
 
+GLint shader_near_clip_z;
+GLint shader_far_clip_z;
+
 GLint shader_modelview_matrix;
 GLint shader_projection_matrix;
 
@@ -140,9 +145,11 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 	if (is_before == 0)
 	{
 		XPLMSetGraphicsState(0, 5, 0, 0, 1, 0, 0);
-		glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);
+		glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		XPLMBindTexture2d(depth_texture, 0);
+		int reverse_z = XPLMGetDatai(reverse_z_dataref);
+
+		XPLMBindTexture2d(depth_texture, 0); 
 
 		int viewport_coordinates[4];
 		XPLMGetDatavi(viewport_dataref, viewport_coordinates, 0, 4);
@@ -153,7 +160,12 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 		GLsizei new_viewport_width = viewport_coordinates[2] - viewport_coordinates[0];
 		GLsizei new_viewport_height = viewport_coordinates[3] - viewport_coordinates[1];
 
-		if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height, 0);
+		GLenum internal_format;
+
+		if (reverse_z == 0) internal_format = GL_DEPTH_COMPONENT24;
+		else internal_format = GL_DEPTH_COMPONENT32F;
+
+		if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) glCopyTexImage2D(GL_TEXTURE_2D, 0, internal_format, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height, 0);
 		else glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height);
 
 		current_viewport_width = new_viewport_width;
@@ -172,6 +184,17 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 		glBindVertexArray(vertex_array_object);
 
 		glUseProgram(shader_program);
+
+		if (reverse_z == 0)
+		{
+			glUniform1f(shader_near_clip_z, -1.0);
+			glUniform1f(shader_far_clip_z, 1.0);
+		}
+		else
+		{
+			glUniform1f(shader_near_clip_z, 1.0);
+			glUniform1f(shader_far_clip_z, 0.0);
+		}
 
 		float modelview_matrix[16];
 		float projection_matrix[16];
@@ -270,8 +293,6 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 	return 1;
 }
 
-#include <XPLMProcessing.h>
-
 PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plugin_description)
 {
 	std::strcpy(plugin_name, "Volumetric Clouds");
@@ -279,6 +300,8 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	std::strcpy(plugin_description, "Volumetric Clouds for X-Plane 11");
 
 	viewport_dataref = XPLMFindDataRef("sim/graphics/view/viewport");
+
+	reverse_z_dataref = XPLMFindDataRef("sim/graphics/view/is_reverse_float_z");
 
 	modelview_matrix_dataref = XPLMFindDataRef("sim/graphics/view/world_matrix");
 	projection_matrix_dataref = XPLMFindDataRef("sim/graphics/view/projection_matrix");
@@ -303,7 +326,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	cloud_type_datarefs[0] = XPLMFindDataRef("sim/weather/cloud_type[0]");
 	cloud_type_datarefs[1] = XPLMFindDataRef("sim/weather/cloud_type[1]");
 	cloud_type_datarefs[2] = XPLMFindDataRef("sim/weather/cloud_type[2]");
-	
+
 	cloud_coverage_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/coverage", 0.45);
 	cloud_coverage_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/coverage", 0.55);
 	cloud_coverage_datarefs[2] = export_float_dataref("volumetric_clouds/broken/coverage", 0.65);
@@ -340,7 +363,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 1.5);
 
-	atmosphere_tint_dataref = export_float_vector_dataref("volumetric_clouds/atmosphere_tint", {0.35, 0.575, 1.0});
+	atmosphere_tint_dataref = export_float_vector_dataref("volumetric_clouds/atmosphere_tint", { 0.35, 0.575, 1.0 });
 	atmospheric_blending_dataref = export_float_dataref("volumetric_clouds/atmospheric_blending", 0.15);
 
 	forward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/forward_mie_scattering", 0.75);
@@ -411,15 +434,18 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	GLint shader_blue_noise_texture = glGetUniformLocation(shader_program, "blue_noise_texture");
 
+	shader_near_clip_z = glGetUniformLocation(shader_program, "near_clip_z");
+	shader_far_clip_z = glGetUniformLocation(shader_program, "far_clip_z");
+
+	shader_modelview_matrix = glGetUniformLocation(shader_program, "modelview_matrix");
+	shader_projection_matrix = glGetUniformLocation(shader_program, "projection_matrix");
+
 	shader_cloud_map_scale = glGetUniformLocation(shader_program, "cloud_map_scale");
 
 	shader_base_noise_scale = glGetUniformLocation(shader_program, "base_noise_scale");
 	shader_detail_noise_scale = glGetUniformLocation(shader_program, "detail_noise_scale");
 
 	shader_blue_noise_scale = glGetUniformLocation(shader_program, "blue_noise_scale");
-
-	shader_modelview_matrix = glGetUniformLocation(shader_program, "modelview_matrix");
-	shader_projection_matrix = glGetUniformLocation(shader_program, "projection_matrix");
 
 	shader_cloud_bases = glGetUniformLocation(shader_program, "cloud_bases");
 	shader_cloud_heights = glGetUniformLocation(shader_program, "cloud_heights");
@@ -436,7 +462,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	shader_fade_end_distance = glGetUniformLocation(shader_program, "fade_end_distance");
 
 	shader_sun_direction = glGetUniformLocation(shader_program, "sun_direction");
-	
+
 	shader_sun_tint = glGetUniformLocation(shader_program, "sun_tint");
 	shader_sun_gain = glGetUniformLocation(shader_program, "sun_gain");
 
@@ -460,9 +486,9 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	glUseProgram(0);
 
 	#ifdef XPLM303
-	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Modern3D, 0, NULL);
+	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Modern3D, 0, nullptr);
 	#else
-	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Airplanes, 0, NULL);
+	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Airplanes, 0, nullptr);
 	#endif
 
 	return 1;
@@ -470,7 +496,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 PLUGIN_API void XPluginStop(void)
 {
-	
+
 }
 
 PLUGIN_API int XPluginEnable(void)

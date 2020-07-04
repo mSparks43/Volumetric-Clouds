@@ -46,12 +46,12 @@ XPLMDataRef export_float_dataref(char* dataref_name, float initial_value)
 {
 	float* float_pointer = new float(initial_value);
 
-	return XPLMRegisterDataAccessor(dataref_name, xplmType_Float, 1, NULL, NULL, read_float_callback, write_float_callback, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, float_pointer, float_pointer);
+	return XPLMRegisterDataAccessor(dataref_name, xplmType_Float, 1, nullptr, nullptr, read_float_callback, write_float_callback, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, float_pointer, float_pointer);
 }
 
 XPLMDataRef export_float_vector_dataref(char* dataref_name, std::vector<float> initial_values)
 {
 	std::vector<float>* vector_pointer = new std::vector<float>(initial_values);
 	
-	return XPLMRegisterDataAccessor(dataref_name, xplmType_FloatArray, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, read_float_vector_callback, write_float_vector_callback, NULL, NULL, vector_pointer, vector_pointer);
+	return XPLMRegisterDataAccessor(dataref_name, xplmType_FloatArray, 1, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, read_float_vector_callback, write_float_vector_callback, nullptr, nullptr, vector_pointer, vector_pointer);
 }

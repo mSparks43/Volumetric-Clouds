@@ -5,7 +5,6 @@
 
 #include <png.h>
 
-#include <algorithm>
 #include <fstream>
 
 GLsizei integer_square_root(GLsizei input_value)
@@ -60,7 +59,7 @@ GLuint load_shader(char* shader_path, GLenum shader_type)
 		glGetShaderiv(shader_reference, GL_INFO_LOG_LENGTH, &compilation_log_length);
 
 		GLchar* compilation_message = new GLchar[compilation_log_length];
-		glGetShaderInfoLog(shader_reference, compilation_log_length, NULL, compilation_message);
+		glGetShaderInfoLog(shader_reference, compilation_log_length, nullptr, compilation_message);
 
 		XPLMDebugString("Shader compilation failed!");
 
@@ -126,7 +125,7 @@ int load_png_texture(char* texture_path, bool create_3d_texture, GLsizei mipmap_
 		return TEXTURE_INVALID;
 	}
 
-	png_structp png_struct = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	png_structp png_struct = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
 	png_infop png_info = png_create_info_struct(png_struct);
 
 	png_set_read_fn(png_struct, &texture_file, read_stream_callback);
@@ -169,7 +168,7 @@ int load_png_texture(char* texture_path, bool create_3d_texture, GLsizei mipmap_
 	delete[] texture_row_pointers;
 	delete[] texture_data;
 
-	png_destroy_read_struct(&png_struct, &png_info, NULL);
+	png_destroy_read_struct(&png_struct, &png_info, nullptr);
 
 	return texture_reference;
 }
