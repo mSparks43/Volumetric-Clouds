@@ -345,11 +345,11 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	detail_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/detail_noise_ratios", {0.625, 0.25, 0.125});
 	detail_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/detail_noise_ratios", {0.625, 0.25, 0.125});
 
-	cloud_density_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/light_absorption", 1.0);
-	cloud_density_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/light_absorption", 1.0);
-	cloud_density_datarefs[2] = export_float_dataref("volumetric_clouds/broken/light_absorption", 1.0);
-	cloud_density_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/light_absorption", 1.0);
-	cloud_density_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/light_absorption", 1.0);
+	cloud_density_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/light_absorption", 1.5);
+	cloud_density_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/light_absorption", 1.5);
+	cloud_density_datarefs[2] = export_float_dataref("volumetric_clouds/broken/light_absorption", 1.5);
+	cloud_density_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/light_absorption", 1.5);
+	cloud_density_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/light_absorption", 1.5);
 
 	fade_start_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/near_fog_cld");
 	fade_end_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/far_fog_cld");
@@ -361,12 +361,12 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	sun_tint_green_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_g");
 	sun_tint_blue_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_b");
 
-	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 1.5);
+	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 1.6);
 
-	atmosphere_tint_dataref = export_float_vector_dataref("volumetric_clouds/atmosphere_tint", { 0.35, 0.575, 1.0 });
-	atmospheric_blending_dataref = export_float_dataref("volumetric_clouds/atmospheric_blending", 0.15);
+	atmosphere_tint_dataref = export_float_vector_dataref("volumetric_clouds/atmosphere_tint", {0.35, 0.575, 1.0});
+	atmospheric_blending_dataref = export_float_dataref("volumetric_clouds/atmospheric_blending", 0.25);
 
-	forward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/forward_mie_scattering", 0.75);
+	forward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/forward_mie_scattering", 0.78);
 	backward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/backward_mie_scattering", 0.25);
 
 	local_time_dataref = XPLMFindDataRef("sim/time/local_time_sec");
@@ -386,7 +386,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	XPLMBindTexture2d(TEXTURE_INVALID, 0);
 
-	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false, 6);
+	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false, 4);
 
 	base_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/base_noise.png", true, 1);
 	detail_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/detail_noise.png", true, 0);

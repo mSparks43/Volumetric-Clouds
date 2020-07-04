@@ -90,13 +90,15 @@ float get_height_ratio(in vec3 ray_position, in int layer_index)
 
 float sample_clouds(in vec3 ray_position, in int layer_index)
 {
-	vec4 base_noise_sample = texture(base_noise_texture, ray_position * base_noise_scale);
+	vec3 wind_offset = vec3(100.0, 20.0, 100.0) * local_time;
+
+	vec4 base_noise_sample = texture(base_noise_texture, (ray_position + wind_offset) * base_noise_scale);
 	float base_noise = map(base_noise_sample.x, dot(base_noise_sample.yzw, base_noise_ratios[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
 
 	float height_ratio = get_height_ratio(ray_position, layer_index);
-	float height_multiplier = map(height_ratio, 0.0, 0.05, 0.0, 1.0) * map(height_ratio, 0.5, 1.0, 1.0, 0.0);
+	float height_multiplier = map(height_ratio, 0.0, 0.25, 0.0, 1.0) * map(height_ratio, 0.5, 1.0, 1.0, 0.0);
 
-	float base_erosion = map(base_noise * height_multiplier, 1.0 - max(texture(cloud_map_texture, ray_position.xz * cloud_map_scale).x, cloud_coverages[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
+	float base_erosion = map(base_noise * height_multiplier, 1.0 - max(texture(cloud_map_texture, (ray_position.xz + wind_offset.xz) * cloud_map_scale).x, cloud_coverages[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
 
 	if (base_erosion > 0.01)
 	{
@@ -178,9 +180,9 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 		}
 
 		ray_start_distance = min(ray_start_distance, world_distance);
-		ray_march_distance = min(ray_march_distance, world_distance - ray_start_distance);
+		ray_march_distance = min(min(ray_march_distance, world_distance - ray_start_distance), 250000.0);
 
-		if (ray_march_distance != 0.0)
+		if (ray_march_distance > 5.0)
 		{
 			vec3 sample_ray_position = ray_start_position + (sample_ray_direction * ray_start_distance);
 			float sample_ray_distance = 0.0;
@@ -208,8 +210,8 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 						sun_ray_position += sun_direction * sun_step_size;
 					}
 
-					float sample_attenuation = clamp(1.5 * sqrt(3.0) * exp(-1.0 * blocking_density) * (1.0 - exp(-2.0 * blocking_density)), 0.75, 1.0);
-					vec3 sample_color = clamp(mix(sun_tint, atmosphere_tint, atmospheric_blending) * sun_gain * mie_scattering_gain * sample_attenuation, 0.0, 1.0);
+					float sample_attenuation = 1.5 * sqrt(3.0) * exp(-1.0 * blocking_density) * (1.0 - exp(-2.0 * blocking_density));
+					vec3 sample_color = clamp(mix(mix(vec3(0.95, 0.95, 0.95), atmosphere_tint, atmospheric_blending), sun_tint * sun_gain * mie_scattering_gain, sample_attenuation) * clamp(sample_attenuation, 0.75, 1.0), 0.0, 1.0);
 
 					float alpha_multiplier = map(length(sample_ray_position - ray_start_position), fade_start_distance, fade_end_distance, 1.0, 0.0);
 					if (alpha_multiplier < 0.01) break;
