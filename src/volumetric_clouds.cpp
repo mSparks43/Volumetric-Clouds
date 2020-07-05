@@ -46,8 +46,12 @@ XPLMDataRef detail_noise_ratio_datarefs[CLOUD_TYPE_COUNT];
 
 XPLMDataRef cloud_density_datarefs[CLOUD_TYPE_COUNT];
 
+XPLMDataRef cloud_tint_dataref;
+
 XPLMDataRef fade_start_distance_dataref;
 XPLMDataRef fade_end_distance_dataref;
+
+XPLMDataRef light_attenuation_dataref;
 
 XPLMDataRef sun_pitch_dataref;
 XPLMDataRef sun_heading_dataref;
@@ -117,8 +121,12 @@ GLint shader_detail_noise_ratios;
 
 GLint shader_cloud_densities;
 
+GLint shader_cloud_tint;
+
 GLint shader_fade_start_distance;
 GLint shader_fade_end_distance;
+
+GLint shader_light_attenuation;
 
 GLint shader_sun_direction;
 
@@ -247,11 +255,18 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 
 		glUniform1fv(shader_cloud_densities, CLOUD_TYPE_COUNT, cloud_densities);
 
+		float cloud_tint[3];
+		XPLMGetDatavf(cloud_tint_dataref, cloud_tint, 0, 3);
+
+		glUniform3fv(shader_cloud_tint, 1, cloud_tint);
+
 		fade_start_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/near_fog_cld");
 		fade_end_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/far_fog_cld");
 
 		glUniform1f(shader_fade_start_distance, XPLMGetDataf(fade_start_distance_dataref));
 		glUniform1f(shader_fade_end_distance, XPLMGetDataf(fade_end_distance_dataref));
+
+		glUniform1f(shader_light_attenuation, 1.0 - XPLMGetDataf(light_attenuation_dataref));
 
 		float sun_pitch = XPLMGetDataf(sun_pitch_dataref) * RADIANS_PER_DEGREES;
 		float sun_heading = XPLMGetDataf(sun_heading_dataref) * RADIANS_PER_DEGREES;
@@ -318,20 +333,20 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	cloud_base_datarefs[2] = XPLMFindDataRef("sim/weather/cloud_base_msl_m[2]");
 
 	cloud_height_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/height", 1000.0);
-	cloud_height_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/height", 2000.0);
-	cloud_height_datarefs[2] = export_float_dataref("volumetric_clouds/broken/height", 2000.0);
-	cloud_height_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/height", 2000.0);
-	cloud_height_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/height", 3000.0);
+	cloud_height_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/height", 2500.0);
+	cloud_height_datarefs[2] = export_float_dataref("volumetric_clouds/broken/height", 3000.0);
+	cloud_height_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/height", 3000.0);
+	cloud_height_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/height", 3500.0);
 
 	cloud_type_datarefs[0] = XPLMFindDataRef("sim/weather/cloud_type[0]");
 	cloud_type_datarefs[1] = XPLMFindDataRef("sim/weather/cloud_type[1]");
 	cloud_type_datarefs[2] = XPLMFindDataRef("sim/weather/cloud_type[2]");
 
-	cloud_coverage_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/coverage", 0.45);
-	cloud_coverage_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/coverage", 0.55);
-	cloud_coverage_datarefs[2] = export_float_dataref("volumetric_clouds/broken/coverage", 0.65);
-	cloud_coverage_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/coverage", 0.85);
-	cloud_coverage_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/coverage", 0.95);
+	cloud_coverage_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/coverage", 0.25);
+	cloud_coverage_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/coverage", 0.65);
+	cloud_coverage_datarefs[2] = export_float_dataref("volumetric_clouds/broken/coverage", 0.85);
+	cloud_coverage_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/coverage", 1.0);
+	cloud_coverage_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/coverage", 1.25);
 
 	base_noise_ratio_datarefs[0] = export_float_vector_dataref("volumetric_clouds/cirrus/base_noise_ratios", {0.625, 0.25, 0.125});
 	base_noise_ratio_datarefs[1] = export_float_vector_dataref("volumetric_clouds/scattered/base_noise_ratios", {0.625, 0.25, 0.125});
@@ -345,14 +360,15 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	detail_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/detail_noise_ratios", {0.625, 0.25, 0.125});
 	detail_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/detail_noise_ratios", {0.625, 0.25, 0.125});
 
-	cloud_density_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/light_absorption", 1.5);
-	cloud_density_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/light_absorption", 1.5);
-	cloud_density_datarefs[2] = export_float_dataref("volumetric_clouds/broken/light_absorption", 1.5);
-	cloud_density_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/light_absorption", 1.5);
-	cloud_density_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/light_absorption", 1.5);
+	cloud_density_datarefs[0] = export_float_dataref("volumetric_clouds/cirrus/density", 1.5);
+	cloud_density_datarefs[1] = export_float_dataref("volumetric_clouds/scattered/density", 1.5);
+	cloud_density_datarefs[2] = export_float_dataref("volumetric_clouds/broken/density", 2.5);
+	cloud_density_datarefs[3] = export_float_dataref("volumetric_clouds/overcast/density", 3.5);
+	cloud_density_datarefs[4] = export_float_dataref("volumetric_clouds/stratus/density", 4.5);
 
-	fade_start_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/near_fog_cld");
-	fade_end_distance_dataref = XPLMFindDataRef("sim/private/stats/skyc/fog/far_fog_cld");
+	cloud_tint_dataref = export_float_vector_dataref("volumetric_clouds/cloud_tint", {0.95, 0.95, 0.95});
+
+	light_attenuation_dataref = XPLMFindDataRef("sim/graphics/misc/light_attenuation");
 
 	sun_pitch_dataref = XPLMFindDataRef("sim/graphics/scenery/sun_pitch_degrees");
 	sun_heading_dataref = XPLMFindDataRef("sim/graphics/scenery/sun_heading_degrees");
@@ -361,10 +377,10 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	sun_tint_green_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_g");
 	sun_tint_blue_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_b");
 
-	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 1.6);
+	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 3.0);
 
 	atmosphere_tint_dataref = export_float_vector_dataref("volumetric_clouds/atmosphere_tint", {0.35, 0.575, 1.0});
-	atmospheric_blending_dataref = export_float_dataref("volumetric_clouds/atmospheric_blending", 0.25);
+	atmospheric_blending_dataref = export_float_dataref("volumetric_clouds/atmospheric_blending", 0.15);
 
 	forward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/forward_mie_scattering", 0.78);
 	backward_mie_scattering_dataref = export_float_dataref("volumetric_clouds/backward_mie_scattering", 0.25);
@@ -386,12 +402,12 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	XPLMBindTexture2d(TEXTURE_INVALID, 0);
 
-	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false, 4);
+	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false);
 
-	base_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/base_noise.png", true, 1);
-	detail_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/detail_noise.png", true, 0);
+	base_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/base_noise.png", true);
+	detail_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/detail_noise.png", true);
 
-	blue_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/blue_noise.png", false, 0);
+	blue_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/blue_noise.png", false);
 
 	glGenVertexArrays(1, &vertex_array_object);
 	glBindVertexArray(vertex_array_object);
@@ -458,8 +474,12 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	shader_cloud_densities = glGetUniformLocation(shader_program, "cloud_densities");
 
+	shader_cloud_tint = glGetUniformLocation(shader_program, "cloud_tint");
+
 	shader_fade_start_distance = glGetUniformLocation(shader_program, "fade_start_distance");
 	shader_fade_end_distance = glGetUniformLocation(shader_program, "fade_end_distance");
+
+	shader_light_attenuation = glGetUniformLocation(shader_program, "light_attenuation");
 
 	shader_sun_direction = glGetUniformLocation(shader_program, "sun_direction");
 

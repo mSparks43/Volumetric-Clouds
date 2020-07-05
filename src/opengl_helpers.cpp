@@ -74,25 +74,23 @@ GLuint load_shader(char* shader_path, GLenum shader_type)
 	return shader_reference;
 }
 
-int create_texture(GLsizei texture_width, GLsizei texture_height, GLsizei mipmap_count, GLint internal_format, GLenum data_format, void* texture_data)
+int create_texture(GLsizei texture_width, GLsizei texture_height, GLint internal_format, GLenum data_format, void* texture_data)
 {
 	int texture_reference;
 	XPLMGenerateTextureNumbers(&texture_reference, 1);
 
 	XPLMBindTexture2d(texture_reference, 0);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipmap_count);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, data_format, GL_UNSIGNED_BYTE, texture_data);
-	glGenerateMipmap(GL_TEXTURE_2D);
 
 	XPLMBindTexture2d(TEXTURE_INVALID, 0);
 
 	return texture_reference;
 }
 
-int create_texture(GLsizei texture_width, GLsizei texture_height, GLsizei texture_depth, GLsizei mipmap_count, GLint internal_format, GLenum data_format, void* texture_data)
+int create_texture(GLsizei texture_width, GLsizei texture_height, GLsizei texture_depth, GLint internal_format, GLenum data_format, void* texture_data)
 {
 	int texture_reference;
 	XPLMGenerateTextureNumbers(&texture_reference, 1);
@@ -100,18 +98,16 @@ int create_texture(GLsizei texture_width, GLsizei texture_height, GLsizei textur
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, texture_reference);
 
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, mipmap_count);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	glTexImage3D(GL_TEXTURE_3D, 0, internal_format, texture_width, texture_height, texture_depth, 0, data_format, GL_UNSIGNED_BYTE, texture_data);
-	glGenerateMipmap(GL_TEXTURE_3D);
 
 	XPLMBindTexture2d(TEXTURE_INVALID, 0);
 
 	return texture_reference;
 }
 
-int load_png_texture(char* texture_path, bool create_3d_texture, GLsizei mipmap_count)
+int load_png_texture(char* texture_path, bool create_3d_texture)
 {
 	std::ifstream texture_file(texture_path, std::ifstream::binary);
 
@@ -162,8 +158,8 @@ int load_png_texture(char* texture_path, bool create_3d_texture, GLsizei mipmap_
 
 	int texture_reference;
 
-	if (create_3d_texture == true) texture_reference = create_texture(image_width, integer_square_root(image_height), integer_square_root(image_height), mipmap_count, texture_format, texture_format, texture_data);
-	else texture_reference = create_texture(image_width, image_height, mipmap_count, texture_format, texture_format, texture_data);
+	if (create_3d_texture == true) texture_reference = create_texture(image_width, integer_square_root(image_height), integer_square_root(image_height), texture_format, texture_format, texture_data);
+	else texture_reference = create_texture(image_width, image_height, texture_format, texture_format, texture_data);
 
 	delete[] texture_row_pointers;
 	delete[] texture_data;

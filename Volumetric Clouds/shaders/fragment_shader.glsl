@@ -51,8 +51,12 @@ uniform vec3[CLOUD_TYPE_COUNT] detail_noise_ratios;
 
 uniform float[CLOUD_TYPE_COUNT] cloud_densities;
 
+uniform vec3 cloud_tint;
+
 uniform float fade_start_distance;
 uniform float fade_end_distance;
+
+uniform float light_attenuation;
 
 uniform vec3 sun_direction;
 
@@ -90,7 +94,7 @@ float get_height_ratio(in vec3 ray_position, in int layer_index)
 
 float sample_clouds(in vec3 ray_position, in int layer_index)
 {
-	vec3 wind_offset = vec3(100.0, 20.0, 100.0) * local_time;
+	vec3 wind_offset = vec3(100.0, 400.0, 100.0) * local_time;
 
 	vec4 base_noise_sample = texture(base_noise_texture, (ray_position + wind_offset) * base_noise_scale);
 	float base_noise = map(base_noise_sample.x, dot(base_noise_sample.yzw, base_noise_ratios[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
@@ -105,7 +109,7 @@ float sample_clouds(in vec3 ray_position, in int layer_index)
 		vec3 detail_noise_sample = texture(detail_noise_texture, ray_position * detail_noise_scale).xyz;
 		float detail_noise = dot(detail_noise_sample, detail_noise_ratios[cloud_types[layer_index] - 1]);
 
-		return map(base_erosion, 0.5 * detail_noise, 1.0, 0.0, 1.0);
+		return map(base_erosion, 0.75 * detail_noise, 1.0, 0.0, 1.0);
 	}
 	else return base_erosion;
 }
@@ -211,7 +215,7 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 					}
 
 					float sample_attenuation = 1.5 * sqrt(3.0) * exp(-1.0 * blocking_density) * (1.0 - exp(-2.0 * blocking_density));
-					vec3 sample_color = clamp(mix(mix(vec3(0.95, 0.95, 0.95), atmosphere_tint, atmospheric_blending), sun_tint * sun_gain * mie_scattering_gain, sample_attenuation) * clamp(sample_attenuation, 0.75, 1.0), 0.0, 1.0);
+					vec3 sample_color = clamp(mix(mix(cloud_tint, atmosphere_tint, atmospheric_blending), sun_tint * sun_gain * mie_scattering_gain, sample_attenuation) * clamp(sample_attenuation, 0.75, 1.0) * light_attenuation, 0.0, 1.0);
 
 					float alpha_multiplier = map(length(sample_ray_position - ray_start_position), fade_start_distance, fade_end_distance, 1.0, 0.0);
 					if (alpha_multiplier < 0.01) break;
@@ -224,7 +228,7 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 					if (output_color.w < 0.01) break;
 				}
 
-				float current_step_size = sample_step_size * map(texture(blue_noise_texture, sample_ray_position.xz * blue_noise_scale).x, 0.0, 1.0, 0.5, 1.0) * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, 2.5);
+				float current_step_size = sample_step_size * map(texture(blue_noise_texture, sample_ray_position.xz * blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0) * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, 4.0);
 
 				sample_ray_position += sample_ray_direction * current_step_size;
 				sample_ray_distance += current_step_size;
