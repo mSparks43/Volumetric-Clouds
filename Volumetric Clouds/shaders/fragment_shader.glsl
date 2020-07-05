@@ -94,7 +94,7 @@ float get_height_ratio(in vec3 ray_position, in int layer_index)
 
 float sample_clouds(in vec3 ray_position, in int layer_index)
 {
-	vec3 wind_offset = vec3(100.0, 400.0, 100.0) * local_time;
+	vec3 wind_offset = vec3(1.0, 0.25, 1.0) * local_time;
 
 	vec4 base_noise_sample = texture(base_noise_texture, (ray_position + wind_offset) * base_noise_scale);
 	float base_noise = map(base_noise_sample.x, dot(base_noise_sample.yzw, base_noise_ratios[cloud_types[layer_index] - 1]), 1.0, 0.0, 1.0);
