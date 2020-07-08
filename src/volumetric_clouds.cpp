@@ -1,7 +1,7 @@
 #ifdef IBM
 #include <Windows.h>
 #endif
-
+#include "../XLua/XTLua/src/xluaplugin.h"
 #include <XPLMDataAccess.h>
 #include <XPLMDisplay.h>
 #include <XPLMGraphics.h>
@@ -355,7 +355,7 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
-
+	
 	return 1;
 }
 
@@ -580,23 +580,24 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Airplanes, 0, nullptr);
 	#endif
 
-	return 1;
+	return XTLuaXPluginStart(NULL);
 }
 
 PLUGIN_API void XPluginStop(void)
 {
 	clean_datarefs();
+	XTLuaXPluginStop();
 }
 
 PLUGIN_API int XPluginEnable(void)
 {
 		
-	return 1;
+	return XTLuaXPluginEnable();
 }
 
 PLUGIN_API void XPluginDisable(void)
 {
-
+	 XTLuaXPluginDisable();
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID sender_plugin, int message_type, void* callback_parameters)
@@ -609,4 +610,5 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID sender_plugin, int message_ty
 		lua_cloud_coverage_datarefs = XPLMFindDataRef("volumetric_clouds/weather/coverage");
 		notify_datarefs();
 	}
+	XTLuaXPluginReceiveMessage(sender_plugin,message_type,callback_parameters);
 }

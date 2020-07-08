@@ -20,15 +20,25 @@ ifeq ($(TARGET), VolumeClouds)
 SOURCES = \
 	src/dataref_helpers.cpp \
 	src/opengl_helpers.cpp \
-	src/volumetric_clouds.cpp 
-LIBS = -lGLEW  
+	src/volumetric_clouds.cpp \
+	XLua/XTLua/src/lua_helpers.cpp \
+	XLua/XTLua/src/module.cpp \
+	XLua/XTLua/src/xlua.cpp \
+	XLua/XTLua/src/xpcommands.cpp \
+	XLua/XTLua/src/xpdatarefs.cpp \
+	XLua/XTLua/src/xpfuncs.cpp \
+	XLua/XTLua/src/xpmtdatarefs.cpp \
+	XLua/XTLua/src/xptimers.cpp
+LIBS = -lGLEW -LXLua/LuaSDK/lib -lluajit 
 endif
 
 	
 INCLUDES = \
 	-I$(SRC_BASE)/SDK/CHeaders/XPLM \
 	-I$(SRC_BASE)/include \
-	-I$(SRC_BASE)/SDK/CHeaders/Widgets
+	-I$(SRC_BASE)/SDK/CHeaders/Widgets \
+	-I$(SRC_BASE)/XLua/LuaSDK/include 
+	
 	
 ifeq ($(XPVER),11)
 DEFINES = -DXPLM200=1 -DXPLM210=1 -DAPL=0 -DLIN=1 -DXPLM300=1 -DXPLM301=1 -DXPLM302=1 -std=c++11 -DXP11=1 -DXPLM303=1
