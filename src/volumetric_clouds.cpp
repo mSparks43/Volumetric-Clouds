@@ -361,9 +361,9 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 
 PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plugin_description)
 {
-	std::strcpy(plugin_name, "Volumetric Clouds");
+	std::strcpy(plugin_name, "Volumetric_Clouds");
 	std::strcpy(plugin_signature, "FarukEroglu2048.volumetric_clouds");
-	std::strcpy(plugin_description, "Volumetric Clouds for X-Plane 11");
+	std::strcpy(plugin_description, "Volumetric_Clouds for X-Plane 11");
 
 	viewport_dataref = XPLMFindDataRef("sim/graphics/view/viewport");
 
@@ -470,12 +470,12 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	XPLMBindTexture2d(TEXTURE_INVALID, 0);
 
-	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/cloud_map.png", false);
+	cloud_map_texture = load_png_texture("Resources/plugins/Volumetric_Clouds/textures/cloud_map.png", false);
 
-	base_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/base_noise.png", true);
-	detail_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/detail_noise.png", true);
+	base_noise_texture = load_png_texture("Resources/plugins/Volumetric_Clouds/textures/base_noise.png", true);
+	detail_noise_texture = load_png_texture("Resources/plugins/Volumetric_Clouds/textures/detail_noise.png", true);
 
-	blue_noise_texture = load_png_texture("Resources/plugins/Volumetric Clouds/textures/blue_noise.png", false);
+	blue_noise_texture = load_png_texture("Resources/plugins/Volumetric_Clouds/textures/blue_noise.png", false);
 
 	glGenVertexArrays(1, &vertex_array_object);
 	glBindVertexArray(vertex_array_object);
@@ -494,8 +494,8 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	glBindVertexArray(0);
 
-	GLuint vertex_shader = load_shader("Resources/plugins/Volumetric Clouds/shaders/vertex_shader.glsl", GL_VERTEX_SHADER);
-	GLuint fragment_shader = load_shader("Resources/plugins/Volumetric Clouds/shaders/fragment_shader.glsl", GL_FRAGMENT_SHADER);
+	GLuint vertex_shader = load_shader("Resources/plugins/Volumetric_Clouds/shaders/vertex_shader.glsl", GL_VERTEX_SHADER);
+	GLuint fragment_shader = load_shader("Resources/plugins/Volumetric_Clouds/shaders/fragment_shader.glsl", GL_FRAGMENT_SHADER);
 
 	shader_program = glCreateProgram();
 
