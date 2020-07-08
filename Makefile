@@ -1,6 +1,6 @@
 
 OS ?= LINUX
-TARGET := VolumeClouds
+TARGET := Volumetric_Clouds
 XPVER ?=11
 
 
@@ -10,13 +10,13 @@ XPVER ?=11
 
 ifeq ($(OS),LINUX)
 ifeq ($(XPVER),11)
-BUILDDIR	:=	./deploy/XP11
+BUILDDIR	:=	.
 else ifeq ($(XPVER), 10)
-BUILDDIR	:=	./deploy/XP10
+BUILDDIR	:=	.
 endif
 SRC_BASE	:=	.
 #TARGET		:= AutoATC
-ifeq ($(TARGET), VolumeClouds)
+ifeq ($(TARGET), Volumetric_Clouds)
 SOURCES = \
 	src/dataref_helpers.cpp \
 	src/opengl_helpers.cpp \
