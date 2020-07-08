@@ -15,7 +15,6 @@ else ifeq ($(XPVER), 10)
 BUILDDIR	:=	.
 endif
 SRC_BASE	:=	.
-#TARGET		:= AutoATC
 ifeq ($(TARGET), Volumetric_Clouds)
 SOURCES = \
 	src/dataref_helpers.cpp \
