@@ -21,6 +21,11 @@ simDR_cloud_type_datarefs[0] = find_dataref("sim/weather/cloud_type[0]");
 simDR_cloud_type_datarefs[1] = find_dataref("sim/weather/cloud_type[1]");
 simDR_cloud_type_datarefs[2] = find_dataref("sim/weather/cloud_type[2]");
 
+simDR_cloud_coverage_datarefs={}
+simDR_cloud_coverage_datarefs[0] = find_dataref("sim/weather/cloud_coverage[0]");
+simDR_cloud_coverage_datarefs[1] = find_dataref("sim/weather/cloud_coverage[1]");
+simDR_cloud_coverage_datarefs[2] = find_dataref("sim/weather/cloud_coverage[2]");
+
 
 cldDR_cloud_height_datarefs = find_dataref("volumetric_clouds/weather/height");
 cldDR_cloud_density_datarefs = find_dataref("volumetric_clouds/weather/density");
@@ -48,6 +53,6 @@ function after_physics()
       local tartget_top=animate_value(cldDR_cloud_base_datarefs[i],simDR_cloud_base_datarefs[i],0,30000,1)
       cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],simDR_cloud_tops_datarefs[i]-cldDR_cloud_base_datarefs[i],0,30000,1)
       cldDR_cloud_density_datarefs[i]=1.5
-      cldDR_cloud_coverage_datarefs[i]=0.25
+      cldDR_cloud_coverage_datarefs[i]=animate_value(cldDR_cloud_coverage_datarefs[i],(simDR_cloud_coverage_datarefs[i] / 3),0,2,1)
     end
 end
