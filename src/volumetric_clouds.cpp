@@ -76,7 +76,7 @@ XPLMDataRef forward_mie_scattering_dataref;
 XPLMDataRef backward_mie_scattering_dataref;
 
 XPLMDataRef local_time_dataref;
-
+XPLMCommandRef	reload_cmd=NULL;
 GLfloat quad_vertices[] =
 {
 	-1.0, -1.0,
@@ -579,7 +579,8 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	#else
 	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Airplanes, 0, nullptr);
 	#endif
-
+	reload_cmd=XPLMCreateCommand("xtlua/reloadvolScripts","Reload volumetric clouds xtlua scripts");
+	XPLMRegisterCommandHandler(reload_cmd, reloadScripts, 1,  (void *)0);
 	return XTLuaXPluginStart(NULL);
 }
 
@@ -591,13 +592,18 @@ PLUGIN_API void XPluginStop(void)
 
 PLUGIN_API int XPluginEnable(void)
 {
-		
+	lua_cloud_base_datarefs = XPLMFindDataRef("volumetric_clouds/weather/cloud_base_msl_m");
+	lua_cloud_type_datarefs = XPLMFindDataRef("volumetric_clouds/weather/cloud_type");
+	lua_cloud_height_datarefs = XPLMFindDataRef("volumetric_clouds/weather/height");
+	lua_cloud_density_datarefs = XPLMFindDataRef("volumetric_clouds/weather/density");
+	lua_cloud_coverage_datarefs = XPLMFindDataRef("volumetric_clouds/weather/coverage");	
 	return XTLuaXPluginEnable();
 }
 
 PLUGIN_API void XPluginDisable(void)
 {
 	 XTLuaXPluginDisable();
+	 //reloadScripts(0,0,0);
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID sender_plugin, int message_type, void* callback_parameters)
