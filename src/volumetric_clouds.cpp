@@ -433,7 +433,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 
 
-	cloud_tint_dataref = export_float_vector_dataref("volumetric_clouds/cloud_tint", {0.95, 0.95, 0.95});
+	cloud_tint_dataref = export_float_vector_dataref("volumetric_clouds/cloud_tint", {0.9, 0.9, 0.95});
 
 	light_attenuation_dataref = XPLMFindDataRef("sim/graphics/misc/light_attenuation");
 
