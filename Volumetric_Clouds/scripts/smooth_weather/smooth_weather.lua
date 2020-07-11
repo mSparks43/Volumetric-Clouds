@@ -32,7 +32,7 @@ cldDR_cloud_height_datarefs = find_dataref("volumetric_clouds/weather/height");
 cldDR_cloud_density_datarefs = find_dataref("volumetric_clouds/weather/density");
 cldDR_cloud_coverage_datarefs = find_dataref("volumetric_clouds/weather/coverage");
 
-
+simDR_whiteout = find_dataref("sim/private/controls/skyc/white_out_in_clouds");
 function animate_value(current_value, target, min, max, speed)
 
     local fps_factor = math.min(0.001, speed * SIM_PERIOD)
@@ -53,30 +53,36 @@ function getDensity(i)
   end
   
 end
+function flight_start()
+  simDR_whiteout=0
+end
 function after_physics()
+  --print(simDR_whiteout)
   local targetSungain=2.25
   local cirrusOnly=0
   for i = 0, 2, 1 do
     cirrusOnly=cirrusOnly+simDR_cloud_type_datarefs[i]
+    if simDR_cloud_coverage_datarefs[i] > 1 then --few scattered
+      cirrusOnly=cirrusOnly-1
+    end
   end
   
-  if cirrusOnly~=1 then
+  if cirrusOnly~=1 then --not cirrus
     simDR_override_clouds=1
     for i = 0, 2, 1 do
       cldDR_cloud_base_datarefs[i]=animate_value(cldDR_cloud_base_datarefs[i],simDR_cloud_base_datarefs[i],0,30000,0.1)
       
       if simDR_cloud_type_datarefs[i]>1 then 
-	  cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],simDR_cloud_tops_datarefs[i]-cldDR_cloud_base_datarefs[i],0,30000,0.1)
-      else
-	  cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],200,0,30000,0.1)
+	  cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],simDR_cloud_tops_datarefs[i]-cldDR_cloud_base_datarefs[i],0,30000,0.05)
+	  cldDR_cloud_coverage_datarefs[i]=animate_value(cldDR_cloud_coverage_datarefs[i],(simDR_cloud_coverage_datarefs[i] / 4),0,0.98,0.1)
+      else --scattered few
+	  cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],250,0,30000,0.1)
+	  cldDR_cloud_coverage_datarefs[i]=animate_value(cldDR_cloud_coverage_datarefs[i],0.08,0,0.98,0.1)
 	  targetSungain=100
       end
       cldDR_cloud_density_datarefs[i]=getDensity(i)
-      if simDR_cloud_type_datarefs[i] >1 then
-	cldDR_cloud_coverage_datarefs[i]=animate_value(cldDR_cloud_coverage_datarefs[i],(simDR_cloud_coverage_datarefs[i] / 4),0,0.98,0.1)
-      else
-	cldDR_cloud_coverage_datarefs[i]=animate_value(cldDR_cloud_coverage_datarefs[i],0.05,0,0.98,0.1)
-      end
+      
+      
       if simDR_cloud_type_datarefs[i] >0 then
 	cldDR_cloud_type_datarefs[i]=simDR_cloud_type_datarefs[i]
       elseif cldDR_cloud_coverage_datarefs[i]<0.05 then
@@ -88,14 +94,6 @@ function after_physics()
     simDR_override_clouds=0
     for i = 0, 2, 1 do
       cldDR_cloud_type_datarefs[i]=0
-      cldDR_cloud_base_datarefs[i]=animate_value(cldDR_cloud_base_datarefs[i],simDR_cloud_base_datarefs[i],0,30000,0.1)
-      
-      if simDR_cloud_type_datarefs[i]>1 then 
-	  cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],simDR_cloud_tops_datarefs[i]-cldDR_cloud_base_datarefs[i],0,30000,0.1)
-      else
-	  cldDR_cloud_height_datarefs[i]=animate_value(cldDR_cloud_height_datarefs[i],200,0,30000,0.1)
-	  targetSungain=100
-      end
     end
     
   end
