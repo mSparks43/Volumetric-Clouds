@@ -63,7 +63,7 @@ function after_physics()
   for i = 0, 2, 1 do
     cirrusOnly=cirrusOnly+simDR_cloud_type_datarefs[i]
     if simDR_cloud_coverage_datarefs[i] > 1 then --few scattered
-      cirrusOnly=cirrusOnly-1
+      cirrusOnly=cirrusOnly+1
     end
   end
   
