@@ -22,7 +22,7 @@
 #define RADIANS_PER_DEGREES 0.01745329251994329576
 
 XPLMDataRef reverse_z_dataref;
-
+XPLMDataRef eye_render;
 XPLMDataRef viewport_dataref;
 
 XPLMDataRef modelview_matrix_dataref;
@@ -175,7 +175,8 @@ float getWindDir(float altitude){
 auto startT= std::chrono::high_resolution_clock::now();
 int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_reference)
 {
-	if (is_before == 0)
+	int eyeI =XPLMGetDatai(eye_render);
+	if (is_before == 0 || eyeI==4)
 	{
 		XPLMSetGraphicsState(0, 5, 0, 0, 1, 0, 0);
 		glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -196,11 +197,20 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 		GLenum internal_format;
 
 		if (reverse_z == 0) internal_format = GL_DEPTH_COMPONENT24;
-		else internal_format = GL_DEPTH_COMPONENT32F;
-
-		if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) glCopyTexImage2D(GL_TEXTURE_2D, 0, internal_format, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height, 0);
-		else glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height);
-
+		else internal_format = GL_DEPTH_COMPONENT32F_NV;
+		//internal_format = GL_DEPTH24_STENCIL8;
+		
+		//printf("%d %d\n",reverse_z,eyeI);
+		if(eyeI!=4){
+		if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) 
+			glCopyTexImage2D(GL_TEXTURE_2D, 0, internal_format, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height, 0);
+			else glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, new_viewport_x, new_viewport_y, new_viewport_width, new_viewport_height);
+		}
+		else{
+			if ((current_viewport_width != new_viewport_width) || (current_viewport_height != new_viewport_height)) 
+			glCopyTexImage2D(GL_TEXTURE_2D, 0, internal_format, new_viewport_x+(new_viewport_width), new_viewport_y, new_viewport_width, new_viewport_height, 0);
+			else glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, new_viewport_x+(new_viewport_width), new_viewport_y, new_viewport_width, new_viewport_height);
+		}
 		current_viewport_width = new_viewport_width;
 		current_viewport_height = new_viewport_height;
 
@@ -368,7 +378,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	viewport_dataref = XPLMFindDataRef("sim/graphics/view/viewport");
 
 	reverse_z_dataref = XPLMFindDataRef("sim/graphics/view/is_reverse_float_z");
-
+	eye_render = XPLMFindDataRef("sim/graphics/view/draw_call_type");
 	modelview_matrix_dataref = XPLMFindDataRef("sim/graphics/view/world_matrix");
 	projection_matrix_dataref = XPLMFindDataRef("sim/graphics/view/projection_matrix");
 
