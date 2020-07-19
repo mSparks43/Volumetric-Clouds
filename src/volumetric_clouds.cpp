@@ -585,7 +585,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	glUseProgram(0);
 
 
-	if(XPLMFindDataRef("sim/graphics/view/using_modern_driver")==NULL)
+	if(XPLMFindDataRef("sim/graphics/view/using_modern_driver")!=NULL)
 		XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Modern3D, 0, nullptr);
 	else
 		XPLMRegisterDrawCallback(draw_callback, 25, 0, nullptr); //depreciated xplm_Phase_Airplanes=25
