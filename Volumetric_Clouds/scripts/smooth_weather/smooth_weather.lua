@@ -112,6 +112,7 @@ function newWeather()
 	cldI_cloud_height_datarefs[i] = cldDR_cloud_height_datarefs[0]
 	cldI_cloud_density_datarefs[i] = cldDR_cloud_density_datarefs[0]
 	cldI_cloud_coverage_datarefs[i] = cldDR_cloud_coverage_datarefs[0]
+
 	cldT_cloud_coverage_datarefs[i]=0
       end
       cldT_cloud_density_datarefs[i]=getDensity(i)
