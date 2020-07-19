@@ -160,7 +160,10 @@ float windAlt[WIND_LAYER_COUNT];
 float getWindSpeed(float altitude){
 	for(int i=0;i<WIND_LAYER_COUNT-1;i++){
 		if(windAlt[i+1]>altitude){
-			return windspeeds[i]*0.51;
+			float retVal= windspeeds[i]*0.51+(windspeeds[i+1]*0.51-windspeeds[i]*0.51)*
+			((altitude-windAlt[i])/(windAlt[i+1]-windAlt[i]));
+			//printf("%d %f %f %f\n",i,altitude,((altitude-windAlt[i])/(windAlt[i+1]-windAlt[i])),retVal);
+			return retVal;
 		}
 	}
 	return windspeeds[WIND_LAYER_COUNT-1]*0.51;
