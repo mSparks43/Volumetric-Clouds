@@ -382,7 +382,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	modelview_matrix_dataref = XPLMFindDataRef("sim/graphics/view/world_matrix");
 	projection_matrix_dataref = XPLMFindDataRef("sim/graphics/view/projection_matrix");
 
-	cloud_map_scale_dataref = export_float_dataref("volumetric_clouds/cloud_map_scale", 0.000005);
+	cloud_map_scale_dataref = export_float_dataref("volumetric_clouds/cloud_map_scale", 0.000002);
 
 	base_noise_scale_dataref = export_float_dataref("volumetric_clouds/base_noise_scale", 0.00005);
 	detail_noise_scale_dataref = export_float_dataref("volumetric_clouds/detail_noise_scale", 0.0005);
@@ -584,11 +584,12 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 	glUseProgram(0);
 
-	#ifdef XPLM303
-	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Modern3D, 0, nullptr);
-	#else
-	XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Airplanes, 0, nullptr);
-	#endif
+
+	if(XPLMFindDataRef("sim/graphics/view/using_modern_driver")==NULL)
+		XPLMRegisterDrawCallback(draw_callback, xplm_Phase_Modern3D, 0, nullptr);
+	else
+		XPLMRegisterDrawCallback(draw_callback, 25, 0, nullptr); //depreciated xplm_Phase_Airplanes=25
+
 	reload_cmd=XPLMCreateCommand("xtlua/reloadvolScripts","Reload volumetric clouds xtlua scripts");
 	XPLMRegisterCommandHandler(reload_cmd, reloadScripts, 1,  (void *)0);
 	return XTLuaXPluginStart(NULL);
