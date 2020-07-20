@@ -6,6 +6,13 @@ cldDR_cloud_height_datarefs = find_dataref("volumetric_clouds/weather/height")
 cldDR_cloud_density_datarefs = find_dataref("volumetric_clouds/weather/density")
 cldDR_cloud_coverage_datarefs = find_dataref("volumetric_clouds/weather/coverage")
 
+simDR_sun_tint_red_dataref = find_dataref("sim/graphics/misc/outside_light_level_r");
+simDR_sun_tint_green_dataref = find_dataref("sim/graphics/misc/outside_light_level_g");
+simDR_sun_tint_blue_dataref = find_dataref("sim/graphics/misc/outside_light_level_b");
+
+cldDR_sun_tint_red_dataref = find_dataref("volumetric_clouds/outside_light_level_r");
+cldDR_sun_tint_green_dataref = find_dataref("volumetric_clouds/outside_light_level_g");
+cldDR_sun_tint_blue_dataref = find_dataref("volumetric_clouds/outside_light_level_b");	
 
 simDR_override_clouds=find_dataref("sim/operation/override/override_clouds")
 cldDR_sun_gain = find_dataref("volumetric_clouds/sun_gain")
@@ -164,13 +171,17 @@ function flight_start()
   newWeather()
 end
 
-
+function setCloudTinting()
+  cldDR_sun_tint_red_dataref = simDR_sun_tint_red_dataref
+  cldDR_sun_tint_green_dataref =simDR_sun_tint_green_dataref
+  cldDR_sun_tint_blue_dataref =simDR_sun_tint_blue_dataref
+end
 function refreshSIMDRs()
   
 end
 
 function after_physics()
-  
+  setCloudTinting()
   local diff=simDRTime-lastUpdate
   if diff>transitionTimeSecs or isNewWeather()==true then newWeather() end
   

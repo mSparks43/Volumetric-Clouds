@@ -457,9 +457,7 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 	sun_pitch_dataref = XPLMFindDataRef("sim/graphics/scenery/sun_pitch_degrees");
 	sun_heading_dataref = XPLMFindDataRef("sim/graphics/scenery/sun_heading_degrees");
 
-	sun_tint_red_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_r");
-	sun_tint_green_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_g");
-	sun_tint_blue_dataref = XPLMFindDataRef("sim/graphics/misc/outside_light_level_b");
+	
 
 	sun_gain_dataref = export_float_dataref("volumetric_clouds/sun_gain", 2.25);
 	cloud_tint_dataref = XPLMFindDataRef("volumetric_clouds/cloud_tint");
@@ -614,7 +612,10 @@ PLUGIN_API int XPluginEnable(void)
 	lua_cloud_type_datarefs = XPLMFindDataRef("volumetric_clouds/weather/cloud_type");
 	lua_cloud_height_datarefs = XPLMFindDataRef("volumetric_clouds/weather/height");
 	lua_cloud_density_datarefs = XPLMFindDataRef("volumetric_clouds/weather/density");
-	lua_cloud_coverage_datarefs = XPLMFindDataRef("volumetric_clouds/weather/coverage");	
+	lua_cloud_coverage_datarefs = XPLMFindDataRef("volumetric_clouds/weather/coverage");
+	sun_tint_red_dataref = XPLMFindDataRef("volumetric_clouds/outside_light_level_r");
+	sun_tint_green_dataref = XPLMFindDataRef("volumetric_clouds/outside_light_level_g");
+	sun_tint_blue_dataref = XPLMFindDataRef("volumetric_clouds/outside_light_level_b");	
 	return XTLuaXPluginEnable();
 }
 
@@ -634,6 +635,9 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID sender_plugin, int message_ty
 		lua_cloud_coverage_datarefs = XPLMFindDataRef("volumetric_clouds/weather/coverage");
 		cloud_tint_dataref = XPLMFindDataRef("volumetric_clouds/cloud_tint");
 		atmosphere_tint_dataref = XPLMFindDataRef("volumetric_clouds/atmosphere_tint");
+		sun_tint_red_dataref = XPLMFindDataRef("volumetric_clouds/outside_light_level_r");
+		sun_tint_green_dataref = XPLMFindDataRef("volumetric_clouds/outside_light_level_g");
+		sun_tint_blue_dataref = XPLMFindDataRef("volumetric_clouds/outside_light_level_b");	
 		notify_datarefs();
 	}
 	XTLuaXPluginReceiveMessage(sender_plugin,message_type,callback_parameters);

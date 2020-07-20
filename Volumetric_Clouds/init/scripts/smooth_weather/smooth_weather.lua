@@ -11,6 +11,9 @@ cldDR_cloud_base_datarefs = deferred_dataref("volumetric_clouds/weather/density"
 cldDR_cloud_base_datarefs = deferred_dataref("volumetric_clouds/weather/coverage","array[3]");
 cloud_tint_dataref = deferred_dataref("volumetric_clouds/cloud_tint","array[3]");
 atmosphere_tint_dataref = deferred_dataref("volumetric_clouds/atmosphere_tint","array[3]");
+sun_tint_red_dataref = deferred_dataref("volumetric_clouds/outside_light_level_r","number");
+sun_tint_green_dataref = deferred_dataref("volumetric_clouds/outside_light_level_g","number");
+sun_tint_blue_dataref = deferred_dataref("volumetric_clouds/outside_light_level_b","number");	
 function flight_start()
   cloud_tint_dataref[0]=0.9
   cloud_tint_dataref[1]=0.9
