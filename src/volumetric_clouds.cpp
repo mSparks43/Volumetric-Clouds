@@ -160,12 +160,16 @@ float windAlt[WIND_LAYER_COUNT];
 float getWindSpeed(float altitude){
 	for(int i=0;i<WIND_LAYER_COUNT-1;i++){
 		if(windAlt[i+1]>altitude){
-			float retVal= windspeeds[i]*0.51+(windspeeds[i+1]*0.51-windspeeds[i]*0.51)*
-			((altitude-windAlt[i])/(windAlt[i+1]-windAlt[i]));
+			float retVal=windspeeds[i]*0.51;
+			if(windspeeds[i+1]>0&&windAlt[i+1]!=windAlt[i])
+			 	retVal+=(windspeeds[i+1]*0.51-windspeeds[i]*0.51)*
+							((altitude-windAlt[i])/(windAlt[i+1]-windAlt[i]));
 			//printf("%d %f %f %f\n",i,altitude,((altitude-windAlt[i])/(windAlt[i+1]-windAlt[i])),retVal);
 			return retVal;
 		}
 	}
+	//int i=WIND_LAYER_COUNT-1;
+	//printf("%d %f %f %f\n",i,altitude,windspeeds[WIND_LAYER_COUNT-1]*0.51);
 	return windspeeds[WIND_LAYER_COUNT-1]*0.51;
 }
 float getWindDir(float altitude){
@@ -200,7 +204,7 @@ int draw_callback(XPLMDrawingPhase drawing_phase, int is_before, void* callback_
 		GLenum internal_format;
 
 		if (reverse_z == 0) internal_format = GL_DEPTH_COMPONENT24;
-		else internal_format = GL_DEPTH_COMPONENT32F_NV;
+		else internal_format = GL_DEPTH_COMPONENT32F;
 		//internal_format = GL_DEPTH24_STENCIL8;
 		
 		//printf("%d %d\n",reverse_z,eyeI);
