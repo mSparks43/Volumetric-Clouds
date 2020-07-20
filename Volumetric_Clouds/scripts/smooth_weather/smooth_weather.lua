@@ -173,8 +173,8 @@ end
 
 function setCloudTinting()
   cldDR_sun_tint_red_dataref = simDR_sun_tint_red_dataref
-  cldDR_sun_tint_green_dataref =simDR_sun_tint_green_dataref
-  cldDR_sun_tint_blue_dataref =simDR_sun_tint_blue_dataref
+  cldDR_sun_tint_green_dataref =simDR_sun_tint_green_dataref*simDR_sun_tint_red_dataref/0.75
+  cldDR_sun_tint_blue_dataref =simDR_sun_tint_blue_dataref*simDR_sun_tint_red_dataref/0.75
 end
 function refreshSIMDRs()
   
