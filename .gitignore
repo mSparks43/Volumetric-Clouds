@@ -2,7 +2,6 @@
 .vs
 .vscode
 deploy/*
-SDK/*
 make.sh
 
 
