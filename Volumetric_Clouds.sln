@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30225.117
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Volumetric_Clouds", "Volumetric_Clouds.vcxproj", "{BEB8E392-4DCF-4D37-A868-C387F7EFA529}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BEB8E392-4DCF-4D37-A868-C387F7EFA529}.Debug|x64.ActiveCfg = Release|x64
+		{BEB8E392-4DCF-4D37-A868-C387F7EFA529}.Debug|x64.Build.0 = Release|x64
+		{BEB8E392-4DCF-4D37-A868-C387F7EFA529}.Release|x64.ActiveCfg = Release|x64
+		{BEB8E392-4DCF-4D37-A868-C387F7EFA529}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E008999E-A2A9-4108-95EA-82E149AE26F5}
+	EndGlobalSection
+EndGlobal
