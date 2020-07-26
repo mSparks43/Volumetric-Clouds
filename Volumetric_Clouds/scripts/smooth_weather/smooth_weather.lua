@@ -9,7 +9,7 @@ cldDR_cloud_coverage_datarefs = find_dataref("volumetric_clouds/weather/coverage
 simDR_sun_tint_red_dataref = find_dataref("sim/graphics/misc/outside_light_level_r");
 simDR_sun_tint_green_dataref = find_dataref("sim/graphics/misc/outside_light_level_g");
 simDR_sun_tint_blue_dataref = find_dataref("sim/graphics/misc/outside_light_level_b");
-
+simDR_sun_pitch = find_dataref("sim/graphics/scenery/sun_pitch_degrees");
 cldDR_sun_tint_red_dataref = find_dataref("volumetric_clouds/outside_light_level_r");
 cldDR_sun_tint_green_dataref = find_dataref("volumetric_clouds/outside_light_level_g");
 cldDR_sun_tint_blue_dataref = find_dataref("volumetric_clouds/outside_light_level_b");	
@@ -172,9 +172,17 @@ function flight_start()
 end
 
 function setCloudTinting()
-  cldDR_sun_tint_red_dataref = simDR_sun_tint_red_dataref
-  cldDR_sun_tint_green_dataref =simDR_sun_tint_green_dataref*simDR_sun_tint_red_dataref/0.75
-  cldDR_sun_tint_blue_dataref =simDR_sun_tint_blue_dataref*simDR_sun_tint_red_dataref/0.75
+  
+  
+  if simDR_sun_pitch>8 then
+    cldDR_sun_tint_red_dataref = simDR_sun_tint_red_dataref
+    cldDR_sun_tint_green_dataref =simDR_sun_tint_green_dataref*simDR_sun_tint_red_dataref/0.75
+    cldDR_sun_tint_blue_dataref =simDR_sun_tint_blue_dataref*simDR_sun_tint_red_dataref/0.75
+  else
+    cldDR_sun_tint_red_dataref = simDR_sun_tint_red_dataref
+    cldDR_sun_tint_green_dataref =simDR_sun_tint_green_dataref
+    cldDR_sun_tint_blue_dataref =simDR_sun_tint_blue_dataref
+  end
 end
 function refreshSIMDRs()
   
