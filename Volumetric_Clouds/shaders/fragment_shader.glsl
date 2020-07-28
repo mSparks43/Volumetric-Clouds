@@ -104,7 +104,7 @@ float sample_clouds(in vec3 ray_position, in int layer_index)
 	float height_ratio = get_height_ratio(ray_position, layer_index);
 	float height_multiplier = map(height_ratio, 0.0, 0.25, 0.0, 1.0) * map(height_ratio, 0.5, 1.0, 1.0, 0.0);
 
-	float base_erosion = map(base_noise * height_multiplier, 1.0 - max(texture(cloud_map_texture, (ray_position.xz + wind_offset.xz) * cloud_map_scale).x, cloud_coverages[layer_index]), 1.0, 0.0, 1.0);
+	float base_erosion = map(base_noise * height_multiplier, 1.0 - max(texture(cloud_map_texture, (ray_position.xz+ wind_offset.xz )* cloud_map_scale ).x, cloud_coverages[layer_index]), 1.0, 0.0, 1.0);
 
 	if (base_erosion > 0.01)
 	{
@@ -172,12 +172,12 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 			if (lower_distance == 0.0) ray_march_distance = higher_distance;
 			else ray_march_distance = lower_distance;
 		}
-		else if (height_ratio == 1.0)
+		else if (height_ratio >= 1.0)
 		{
 			if (inner_sphere_intersections.x == 0.0)
 			{
 				ray_start_distance = outer_sphere_intersections.x;
-				ray_march_distance = outer_sphere_intersections.y - outer_sphere_intersections.x;
+				ray_march_distance = outer_sphere_intersections.x - outer_sphere_intersections.x;
 			}
 			else
 			{
@@ -193,17 +193,31 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 		{
 			vec3 sample_ray_position = ray_start_position + (sample_ray_direction * ray_start_distance);
 			float sample_ray_distance = 0.0;
-
+			
 			float sample_step_size = min(ray_march_distance / SAMPLE_STEP_COUNT, MAXIMUM_SAMPLE_STEP_SIZE);
 			float sun_step_size = cloud_heights[layer_index] / SUN_STEP_COUNT;
-
+			//float b_noise=map(texture(blue_noise_texture, sample_ray_position.xz*blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0);
 			float sun_dot_angle = dot(sample_ray_direction, sun_direction);
 			float mie_scattering_gain = clamp(mix(henyey_greenstein(sun_dot_angle, forward_mie_scattering), henyey_greenstein(sun_dot_angle, -1.0 * backward_mie_scattering), 0.5), 1.0, 2.5);
-
+			float local_blue_noise_scale=blue_noise_scale;
+			float step_max=2.5;
+			float local_bnoise=map(texture(blue_noise_texture, sample_ray_position.xz * local_blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0);
 			while (sample_ray_distance <= ray_march_distance)
 			{
 				float cloud_sample = sample_clouds(sample_ray_position, layer_index);
-
+				local_bnoise=1.0;
+				if(sample_ray_distance<5000&&local_blue_noise_scale>0.0){
+				  local_bnoise=map(texture(blue_noise_texture, sample_ray_position.xz * local_blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0);
+				}
+				if(sample_ray_distance>2500){
+				    step_max=5.0;
+				    
+				  }
+				  if(sample_ray_distance>5000){
+				    local_blue_noise_scale=0;
+				     step_max=2.5;
+				     
+				  }
 				if (cloud_sample != 0.0)
 				{
 					float blocking_density = 0.0;
@@ -221,14 +235,16 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 					vec3 sample_color = clamp(mix(mix(cloud_tint, atmosphere_tint, atmospheric_blending), sun_tint * sun_gain * mie_scattering_gain, sample_attenuation) * clamp(sample_attenuation, 0.75, 1.0) * light_attenuation, 0.0, 1.0);
 
 					float alpha_multiplier = map(length(sample_ray_position - ray_start_position), fade_start_distance, fade_end_distance, 1.0, 0.0);
-					if (alpha_multiplier < 0.01) break;
-
+					if (alpha_multiplier < 0.01){
+					  sample_ray_distance += ray_march_distance;
+					  break;
+					}
 					float sample_alpha = cloud_sample * alpha_multiplier;
 
 					output_color.xyz += sample_color * sample_alpha * output_color.w;
 					output_color.w *= 1.0 - sample_alpha;
 
-					if (output_color.w < 0.01) break;
+					if (output_color.w < 0.01) sample_ray_distance += ray_march_distance;//break;
 				}
 
 				/*if(sample_ray_distance<2000){
@@ -239,8 +255,9 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 				}
 				else*/
 				{
-				  float current_step_size = sample_step_size * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, 2.5);
-				  //float current_step_size = sample_step_size * map(texture(blue_noise_texture, sample_ray_position.xz * blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0) * map(sample_ray_distance, 0.0, ray_march_distance, 1, 3.0);
+				  
+				  //float current_step_size = sample_step_size * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, 2.5);
+				  float current_step_size = sample_step_size * local_bnoise * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, step_max);
 				  sample_ray_position += sample_ray_direction * current_step_size;
 				  sample_ray_distance += current_step_size;
 				  /*if(sample_ray_distance>50000){

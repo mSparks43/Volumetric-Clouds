@@ -42,8 +42,10 @@ simDR_fog = find_dataref("sim/private/controls/fog/fog_be_gone")
 simDR_dsf_min = find_dataref("sim/private/controls/skyc/min_dsf_vis_ever")
 simDR_dsf_max = find_dataref("sim/private/controls/skyc/max_dsf_vis_ever")
 simDRTime=find_dataref("sim/time/total_running_time_sec")
+simDR_VR=find_dataref("sim/graphics/VR/enabled")
 cloud_tint_dataref = find_dataref("volumetric_clouds/cloud_tint");
 atmosphere_tint_dataref = find_dataref("volumetric_clouds/atmosphere_tint")
+cldDR_blue_noise_scale = find_dataref("volumetric_clouds/blue_noise_scale");--defined in the xpl
 
 cldI_cloud_base_datarefs = {};
 cldI_cloud_type_datarefs = {};
@@ -85,11 +87,11 @@ end
 
 
 function getDensity(i)
-  if simDR_cloud_type_datarefs[i]==1 then return 1.5
+  if simDR_cloud_type_datarefs[i]==1 then return 0.1
   elseif simDR_cloud_type_datarefs[i]==4 then return 1.5
   elseif simDR_cloud_coverage_datarefs[i] <=2 then return 1.1
   else
-    return 1.125
+    return 0.2
   end
   
 end
@@ -141,7 +143,7 @@ end
 
 
 function flight_start()
-  simDR_whiteout=0
+  simDR_whiteout=1
   simDR_fog=0.2
   simDR_dsf_min=200000
   simDR_dsf_max=110000
@@ -189,6 +191,13 @@ function refreshSIMDRs()
 end
 
 function after_physics()
+  if simDR_VR==1 then 
+    cldDR_blue_noise_scale=0
+  else
+    cldDR_blue_noise_scale=0.01
+  end
+  
+  
   setCloudTinting()
   local diff=simDRTime-lastUpdate
   if diff>transitionTimeSecs or isNewWeather()==true then newWeather() end
