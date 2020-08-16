@@ -1,4 +1,4 @@
-local transitionTimeSecs=30
+local transitionTimeSecs=300
 local cloudheightMod=2
 cldDR_cloud_base_datarefs = find_dataref("volumetric_clouds/weather/cloud_base_msl_m")
 cldDR_cloud_type_datarefs = find_dataref("volumetric_clouds/weather/cloud_type")
@@ -48,13 +48,13 @@ atmosphere_tint_dataref = find_dataref("volumetric_clouds/atmosphere_tint")
 cldDR_blue_noise_scale = find_dataref("volumetric_clouds/blue_noise_scale");--defined in the xpl
 
 cldI_cloud_base_datarefs = {};
-cldI_cloud_type_datarefs = {};
+--cldI_cloud_type_datarefs = {};
 cldI_cloud_height_datarefs = {};
 cldI_cloud_density_datarefs = {};
 cldI_cloud_coverage_datarefs = {};
 cldI_sun_gain = 2.25;
 cldT_cloud_base_datarefs = {};
-cldT_cloud_type_datarefs = {};
+--cldT_cloud_type_datarefs = {};
 cldT_cloud_height_datarefs = {};
 cldT_cloud_density_datarefs = {};
 cldT_cloud_coverage_datarefs = {};
@@ -88,10 +88,10 @@ end
 
 function getDensity(i)
   if simDR_cloud_type_datarefs[i]==1 then return 0.1
-  elseif simDR_cloud_type_datarefs[i]==4 then return 1.5
-  elseif simDR_cloud_coverage_datarefs[i] <=2 then return 1.1
+  elseif simDR_cloud_type_datarefs[i]==4 then return 0.5
+  elseif simDR_cloud_coverage_datarefs[i] <=2 then return 0.1
   else
-    return 0.2
+    return 0.1
   end
   
 end
@@ -100,7 +100,7 @@ end
 function newWeather()
   for i = 0, 2, 1 do
     cldI_cloud_base_datarefs[i] = cldDR_cloud_base_datarefs[i];
-    cldI_cloud_type_datarefs[i] = cldDR_cloud_type_datarefs[i];
+    --cldI_cloud_type_datarefs[i] = cldDR_cloud_type_datarefs[i];
     cldI_cloud_height_datarefs[i] = cldDR_cloud_height_datarefs[i];
     cldI_cloud_density_datarefs[i] = cldDR_cloud_density_datarefs[i];
     cldI_cloud_coverage_datarefs[i] = cldDR_cloud_coverage_datarefs[i];
@@ -109,12 +109,12 @@ function newWeather()
     cldT_cloud_base_datarefs[i]=simDR_cloud_base_datarefs[i]
     if cldDR_cloud_type_datarefs[i]>1 then 
 	  cldT_cloud_height_datarefs[i]=(simDR_cloud_tops_datarefs[i]-simDR_cloud_base_datarefs[i])*cloudheightMod
-	  cldT_cloud_coverage_datarefs[i]=math.min(((simDR_cloud_coverage_datarefs[i]-1) /4),1.0)
+	  cldT_cloud_coverage_datarefs[i]=math.min(((simDR_cloud_coverage_datarefs[i]-1) /5),1.0)
 	  
 	  cldT_sun_gain=2.25
       elseif cldDR_cloud_type_datarefs[i]>0 then --scattered few and cirrus
 	  cldT_cloud_height_datarefs[i]=500
-	  cldT_cloud_coverage_datarefs[i]=math.min(((simDR_cloud_coverage_datarefs[i]-1) / 4),1.0)
+	  cldT_cloud_coverage_datarefs[i]=math.min(((simDR_cloud_coverage_datarefs[i]-1) /5),1.0)
 	  cldT_sun_gain=3
       else
 	cldI_cloud_base_datarefs[i] = cldDR_cloud_base_datarefs[0]
@@ -145,8 +145,8 @@ end
 function flight_start()
   simDR_whiteout=1
   simDR_fog=0.2
-  simDR_dsf_min=200000
-  simDR_dsf_max=110000
+  simDR_dsf_min=500000
+  simDR_dsf_max=200000
   cloud_tint_dataref[0]=0.9
   cloud_tint_dataref[1]=0.9
   cloud_tint_dataref[2]=1.0
@@ -155,7 +155,7 @@ function flight_start()
   atmosphere_tint_dataref[2]=1.0
   for i = 0, 2, 1 do
     cldT_cloud_height_datarefs[i]=(simDR_cloud_tops_datarefs[0]-simDR_cloud_base_datarefs[0])*cloudheightMod
-    cldT_cloud_coverage_datarefs[i]=math.min((simDR_cloud_coverage_datarefs[0]-1 / 4),1.0)
+    cldT_cloud_coverage_datarefs[i]=math.min((simDR_cloud_coverage_datarefs[0]-1 /5),1.0)
   end
   newWeather()
   for i = 0, 2, 1 do
@@ -220,6 +220,9 @@ function after_physics()
   
   if cirrusOnly~=1 then --not cirrus
     simDR_override_clouds=1
+  else
+    simDR_override_clouds=0
+   end
     for i = 0, 2, 1 do
       --print(i .. " " ..cldDR_cloud_base_datarefs[i])
       cldDR_cloud_base_datarefs[i]=interpolate_value(cldI_cloud_base_datarefs[i],cldT_cloud_base_datarefs[i])
@@ -228,20 +231,14 @@ function after_physics()
       cldDR_cloud_coverage_datarefs[i]=interpolate_value(cldI_cloud_coverage_datarefs[i],cldT_cloud_coverage_datarefs[i])
       cldDR_cloud_density_datarefs[i]=interpolate_value(cldI_cloud_density_datarefs[i],cldT_cloud_density_datarefs[i])  
       --print(i .. " b=" .. cldDR_cloud_base_datarefs[i] .." h=" ..cldDR_cloud_height_datarefs[i] .. " d="..diff)
-      if simDR_cloud_type_datarefs[i] >0 then
+      if simDR_cloud_type_datarefs[i] >0 and cirrusOnly~=1 then
 	cldDR_cloud_type_datarefs[i]=simDR_cloud_type_datarefs[i]
       elseif cldDR_cloud_coverage_datarefs[i]<0.05 then
 	cldDR_cloud_type_datarefs[i]=0
       end
       --if simDR_cloud_type_datarefs[i]==4 then targetSungain=1 end
     end
-  else
-    simDR_override_clouds=0
-    for i = 0, 2, 1 do
-      cldDR_cloud_type_datarefs[i]=0
-    end
-    
-  end
+  
   
     --cldDR_sun_gain=animate_value(cldDR_sun_gain,targetSungain,1,2.25,1)
     cldDR_sun_gain=interpolate_value(cldI_sun_gain,cldT_sun_gain)

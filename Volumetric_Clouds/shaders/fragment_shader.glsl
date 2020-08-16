@@ -4,7 +4,7 @@
 #define EARTH_CENTER vec3(0.0, -1.0 * EARTH_RADIUS, 0.0)
 
 #define SAMPLE_STEP_COUNT 64
-#define SUN_STEP_COUNT 4
+#define SUN_STEP_COUNT 12
 
 #define MAXIMUM_SAMPLE_STEP_SIZE 100.0
 
@@ -201,13 +201,15 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 			float mie_scattering_gain = clamp(mix(henyey_greenstein(sun_dot_angle, forward_mie_scattering), henyey_greenstein(sun_dot_angle, -1.0 * backward_mie_scattering), 0.5), 1.0, 2.5);
 			float local_blue_noise_scale=blue_noise_scale;
 			float step_max=2.5;
-			float local_bnoise=map(texture(blue_noise_texture, sample_ray_position.xz * local_blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0);
+			float step_min=1.0;
+			float local_bnoise=map(texture(blue_noise_texture, sample_ray_position.xz * local_blue_noise_scale).x, 0.0, 1.0, 0.5, 1.0);
 			while (sample_ray_distance <= ray_march_distance)
 			{
+				//
 				float cloud_sample = sample_clouds(sample_ray_position, layer_index);
 				local_bnoise=1.0;
-				if(sample_ray_distance<5000&&local_blue_noise_scale>0.0){
-				  local_bnoise=map(texture(blue_noise_texture, sample_ray_position.xz * local_blue_noise_scale).x, 0.0, 1.0, 0.75, 1.0);
+				if(local_blue_noise_scale>0.0&&cloud_coverages[layer_index]<0.6){
+				  local_bnoise=map(texture(blue_noise_texture, sample_ray_position.xz * local_blue_noise_scale).x, 0.0, 1.0, 0.5, 1.0);
 				}
 				if(sample_ray_distance>2500){
 				    step_max=5.0;
@@ -215,36 +217,70 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 				  }
 				  if(sample_ray_distance>5000){
 				    local_blue_noise_scale=0;
-				     step_max=2.5;
+				     step_max=4.0;
+				     
+				  }
+				  if(sample_ray_distance>15000){
+				     step_min=2.0;
+				     step_max=50.0;
+				     //local_blue_noise_scale=blue_noise_scale;
+				     
+				  }
+				  if(sample_ray_distance>30000){
+				     step_min=50.0;
+				     step_max=5000.0;
 				     
 				  }
 				if (cloud_sample != 0.0)
 				{
-					float blocking_density = 0.0;
-
-					vec3 sun_ray_position = sample_ray_position;
-
-					for (int sun_step = 0; sun_step < SUN_STEP_COUNT; sun_step++)
+					///height_ratio = get_height_ratio(sample_ray_position, layer_index);
+					float blocking_density = 0;
+					//if(height_ratio <1.0)
 					{
-						blocking_density += sample_clouds(sun_ray_position, layer_index) * cloud_densities[layer_index];
+					    vec3 sun_ray_position = sample_ray_position;
 
-						sun_ray_position += sun_direction * sun_step_size;
+					    for (int sun_step = 0; sun_step < SUN_STEP_COUNT; sun_step++)
+					    {
+						    blocking_density += (sample_clouds(sun_ray_position, layer_index) * (cloud_densities[layer_index]));
+
+						    sun_ray_position += sun_direction * sun_step_size;
+					    }
+					    blocking_density=clamp(blocking_density,0.1,1.0);
 					}
+					/*else
+					{
+					    blocking_density = 1.0;
+					    vec3 sun_ray_position = sample_ray_position;
 
-					float sample_attenuation = 1.5 * sqrt(3.0) * exp(-1.0 * blocking_density) * (1.0 - exp(-2.0 * blocking_density));
+					    for (int sun_step = 0; sun_step < SUN_STEP_COUNT; sun_step++)
+					    {
+						    blocking_density -= sample_clouds(sun_ray_position, layer_index) * (1+cloud_densities[layer_index]);
+
+						    sun_ray_position -= sun_direction *sun_step_size;
+					    }
+					    blocking_density=clamp(blocking_density,0.0,0.6);
+					}*/
+					  
+					   //
+					   
+					//float sample_attenuation = 1.5 * sqrt(3.0) * exp(-1.0 * blocking_density) * (1.0 - exp(-2.0 * blocking_density));
+					float sample_attenuation = exp(-1.0 * blocking_density);
 					vec3 sample_color = clamp(mix(mix(cloud_tint, atmosphere_tint, atmospheric_blending), sun_tint * sun_gain * mie_scattering_gain, sample_attenuation) * clamp(sample_attenuation, 0.75, 1.0) * light_attenuation, 0.0, 1.0);
 
 					float alpha_multiplier = map(length(sample_ray_position - ray_start_position), fade_start_distance, fade_end_distance, 1.0, 0.0);
-					if (alpha_multiplier < 0.01){
+					if (alpha_multiplier < 0.001){
 					  sample_ray_distance += ray_march_distance;
 					  break;
 					}
-					float sample_alpha = cloud_sample * alpha_multiplier;
-
+					float sample_alpha = cloud_sample * alpha_multiplier*(1-blocking_density);
+					
 					output_color.xyz += sample_color * sample_alpha * output_color.w;
 					output_color.w *= 1.0 - sample_alpha;
-
-					if (output_color.w < 0.01) sample_ray_distance += ray_march_distance;//break;
+					
+					if (output_color.w < 0.001) {
+					  sample_ray_distance += ray_march_distance;
+					  break;
+					  }
 				}
 
 				/*if(sample_ray_distance<2000){
@@ -257,7 +293,7 @@ vec4 ray_march(in int layer_index, in vec4 input_color)
 				{
 				  
 				  //float current_step_size = sample_step_size * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, 2.5);
-				  float current_step_size = sample_step_size * local_bnoise * map(sample_ray_distance, 0.0, ray_march_distance, 1.0, step_max);
+				  float current_step_size = sample_step_size * local_bnoise * map(sample_ray_distance, 0.0, ray_march_distance, step_min, step_max);
 				  sample_ray_position += sample_ray_direction * current_step_size;
 				  sample_ray_distance += current_step_size;
 				  /*if(sample_ray_distance>50000){
@@ -285,4 +321,6 @@ void main()
 	for (int layer_index = first_higher_layer - 1; layer_index >= 0; layer_index--) output_color = ray_march(layer_index, output_color);
 
 	fragment_color = vec4(output_color.xyz, 1.0 - output_color.w);
+	
+	//fragment_color = texture(depth_texture, depth_texture_position);
 }

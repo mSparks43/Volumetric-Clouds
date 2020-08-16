@@ -436,17 +436,17 @@ PLUGIN_API int XPluginStart(char* plugin_name, char* plugin_signature, char* plu
 
 
 
-	base_noise_ratio_datarefs[0] = export_float_vector_dataref("volumetric_clouds/cirrus/base_noise_ratios", {0.625, 0.25, 0.125});
+	base_noise_ratio_datarefs[0] = export_float_vector_dataref("volumetric_clouds/cirrus/base_noise_ratios", {0.0625, 0.025, 0.125});
 	base_noise_ratio_datarefs[1] = export_float_vector_dataref("volumetric_clouds/scattered/base_noise_ratios", {0.0625, 0.025, 0.0125});
-	base_noise_ratio_datarefs[2] = export_float_vector_dataref("volumetric_clouds/broken/base_noise_ratios", {0.625, 0.25, 0.125});
-	base_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/base_noise_ratios", {0.625, 0.25, 0.125});
-	base_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/base_noise_ratios", {0.625, 0.25, 0.125});
+	base_noise_ratio_datarefs[2] = export_float_vector_dataref("volumetric_clouds/broken/base_noise_ratios", {0.0625, 0.025, 0.125});
+	base_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/base_noise_ratios", {0.0625, 0.025, 0.125});
+	base_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/base_noise_ratios", {0.0625, 0.025, 0.125});
 
-	detail_noise_ratio_datarefs[0] = export_float_vector_dataref("volumetric_clouds/cirrus/detail_noise_ratios", {0.625, 0.25, 0.125});
-	detail_noise_ratio_datarefs[1] = export_float_vector_dataref("volumetric_clouds/scattered/detail_noise_ratios", {0.625, 0.25, 0.125});
-	detail_noise_ratio_datarefs[2] = export_float_vector_dataref("volumetric_clouds/broken/detail_noise_ratios", {0.625, 0.25, 0.125});
-	detail_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/detail_noise_ratios", {0.625, 0.25, 0.125});
-	detail_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/detail_noise_ratios", {0.625, 0.25, 0.125});
+	detail_noise_ratio_datarefs[0] = export_float_vector_dataref("volumetric_clouds/cirrus/detail_noise_ratios", {0.0625, 0.025, 0.125});
+	detail_noise_ratio_datarefs[1] = export_float_vector_dataref("volumetric_clouds/scattered/detail_noise_ratios", {0.0625, 0.025, 0.125});
+	detail_noise_ratio_datarefs[2] = export_float_vector_dataref("volumetric_clouds/broken/detail_noise_ratios", {0.0625, 0.025, 0.125});
+	detail_noise_ratio_datarefs[3] = export_float_vector_dataref("volumetric_clouds/overcast/detail_noise_ratios", {0.0625, 0.025, 0.125});
+	detail_noise_ratio_datarefs[4] = export_float_vector_dataref("volumetric_clouds/stratus/detail_noise_ratios", {0.0625, 0.025, 0.125});
 
 
 
